@@ -8,13 +8,13 @@ import {
 } from "react-native";
 import { Button, Text, TextInput, HelperText, IconButton, Portal, Dialog } from "react-native-paper";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { AuthStackParamList } from "../App";
-import api, { endpoints } from "../configs/Apis";
+import { AuthStackParamList } from "../../App";
+import api, { endpoints } from "../../configs/Apis";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { UserDispatch } from "../configs/Contexts";
+import { UserDispatch } from "../../configs/Contexts";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import TopBar from "./TopBar";
-import axios, { AxiosError } from "axios";
+import TopBar from "../TopBar";
+import axios from "axios";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "login">;
 
@@ -55,25 +55,39 @@ const Login: FC<Props> = ({ navigation }) => {
                 username: username,
                 password: password
             });
+            const user = await api.get(endpoints['profile'], {
+                headers: {
+                    Authorization: `Bearer ${res.data.access_token}`
+                }
+            });
+
+            if (user.data.is_verified === false) {
+                navigation.navigate("verify", {
+                    email: user.data.email
+                });
+                return;
+            }
+            
             await AsyncStorage.multiSet([
                 ["accessToken", res.data.access_token],
                 ["refreshToken", res.data.refresh_token],
             ]);
-            const userdata = await api.get(endpoints['profile']);
+
             userDispatch({
                 type: "login",
-                payload: userdata.data
+                payload: user.data
             });
 
         } catch (err: any) {
             let msg = "Hệ thống đang có lỗi, thử lại sau nhé!";
             if (axios.isAxiosError(err) && err.status === 400) {
-                setErrGeneral(err.response?.data?.message);
+                msg = err.response?.data?.message;
             } else {
                 console.error(err);
                 console.error(err.status);
                 console.error(err.response?.data);
             }
+            setErrGeneral(msg);
             setShowDialog(true);
 
         } finally {

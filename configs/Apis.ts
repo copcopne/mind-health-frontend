@@ -5,6 +5,10 @@ const BASE_URL = 'http://10.0.2.2:8080/MindHealth/api';
 export const endpoints = {
     login: '/auth/login',
     refresh: '/auth/refresh',
+    verifyRequest: '/auth/email-verify/request',
+    verify: '/auth/email-verify',
+    forgotPassword: '/auth/forgot-password',
+    resetPassword: '/auth/reset-password',
 
     users: '/users',
     profile: '/users/profile'

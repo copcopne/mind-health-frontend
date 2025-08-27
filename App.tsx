@@ -8,8 +8,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
 import WelcomeScreen from "./components/WelcomeScreen";
-import Login from "./components/Login";
-import Register from "./components/Register";
+import Login from "./components/auth/Login";
+import Register from "./components/auth/Register";
 import Home from "./components/home/Home";
 import { userReducer } from "./reducers/UserReducer";
 import { SnackbarProvider, UserContext, UserDispatch } from "./configs/Contexts";
@@ -17,6 +17,7 @@ import api, { endpoints } from "./configs/Apis";
 import Profile from "./components/profile/Profile";
 import { MD3LightTheme, PaperProvider, useTheme } from "react-native-paper";
 import { TouchableOpacity, TouchableOpacityProps } from "react-native";
+import Verify from "./components/auth/Verify";
 
 // ===== Types =====
 export type RootStackParamList = {
@@ -27,6 +28,7 @@ export type AuthStackParamList = {
   welcomeScreen: undefined;
   login: undefined;
   register: undefined;
+  verify: {email: string, username?: string, password?: string};
 };
 export type MainTabParamList = {
   home: undefined;
@@ -44,6 +46,7 @@ const AuthNavigator = () => {
       <AuthStack.Screen name="welcomeScreen" component={WelcomeScreen} />
       <AuthStack.Screen name="login" component={Login} />
       <AuthStack.Screen name="register" component={Register} />
+      <AuthStack.Screen name="verify" component={Verify} />
     </AuthStack.Navigator>
   );
 }

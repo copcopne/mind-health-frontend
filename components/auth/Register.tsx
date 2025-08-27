@@ -19,11 +19,11 @@ import {
     Dialog,
 } from "react-native-paper";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { AuthStackParamList } from "../App";
-import api, { endpoints } from "../configs/Apis";
+import { AuthStackParamList } from "../../App";
+import api, { endpoints } from "../../configs/Apis";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import TopBar, { TOPBAR_TOTAL_HEIGHT } from "./TopBar";
-import { useSnackbar } from "../configs/Contexts";
+import TopBar, { TOPBAR_TOTAL_HEIGHT } from "../TopBar";
+import { useSnackbar } from "../../configs/Contexts";
 import axios from "axios";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "register">;
@@ -80,7 +80,7 @@ const Register: FC<Props> = ({ navigation }) => {
                 }),
             },
         ],
-        // khi ẩn thì chặn click luôn
+        // khi ẩn thì chặn click
         pointerEvents: step === 0 ? "auto" as const : "none" as const,
     };
 
@@ -199,6 +199,12 @@ const Register: FC<Props> = ({ navigation }) => {
             await api.post(endpoints.users, payload);
             navigation.replace("login");
             showSnackbar("Tạo thành công!", "success");
+            navigation.navigate("welcomeScreen");
+            navigation.navigate("verify", {
+                email: email,
+                username: username,
+                password: password,
+            });
         } catch (err: any) {
             let msg = "Hệ thống đang có lỗi, thử lại sau nhé!";
             if (axios.isAxiosError(err) && err.status === 400) {
@@ -210,7 +216,7 @@ const Register: FC<Props> = ({ navigation }) => {
                 console.error(err.response?.data);
             }
             setShowDialog(true);
-            
+
         } finally {
             setLoading(false);
         }
@@ -365,7 +371,7 @@ const Register: FC<Props> = ({ navigation }) => {
 
                 </KeyboardAwareScrollView>
 
-                {/* FOOTER cố định dưới cùng */}
+                {/* FOOTER */}
                 <Animated.View style={[styles.footer, { bottom: kbBottom }]}>
                     <Animated.View style={loginHintStyle}>
                         <Button
@@ -409,16 +415,16 @@ const Register: FC<Props> = ({ navigation }) => {
             </View>
 
             <Portal>
-          <Dialog visible={showDialog} onDismiss={() => setShowDialog(false)}>
-            <Dialog.Title>Lỗi đăng nhập</Dialog.Title>
-            <Dialog.Content>
-              <Text variant="bodyMedium">{message}</Text>
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => setShowDialog(false)}>OK</Button>
-            </Dialog.Actions>
-          </Dialog>
-        </Portal>
+                <Dialog visible={showDialog} onDismiss={() => setShowDialog(false)}>
+                    <Dialog.Title>Lỗi đăng nhập</Dialog.Title>
+                    <Dialog.Content>
+                        <Text variant="bodyMedium">{message}</Text>
+                    </Dialog.Content>
+                    <Dialog.Actions>
+                        <Button onPress={() => setShowDialog(false)}>OK</Button>
+                    </Dialog.Actions>
+                </Dialog>
+            </Portal>
 
         </SafeAreaView>
     );
