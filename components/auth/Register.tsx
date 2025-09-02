@@ -1,6 +1,5 @@
 import { FC, useEffect, useMemo, useRef, useState } from "react";
 import {
-    SafeAreaView,
     View,
     StyleSheet,
     Keyboard,
@@ -17,14 +16,16 @@ import {
     ProgressBar,
     Portal,
     Dialog,
+    Checkbox
 } from "react-native-paper";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../../App";
-import api, { endpoints } from "../../configs/Apis";
+import { api, endpoints } from "../../configs/Apis";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import TopBar, { TOPBAR_TOTAL_HEIGHT } from "../TopBar";
+import TopBar from "../TopBar";
 import { useSnackbar } from "../../configs/Contexts";
 import axios from "axios";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "register">;
 type Step = 0 | 1 | 2 | 3 | 4;
@@ -42,6 +43,7 @@ const Register: FC<Props> = ({ navigation }) => {
     const [confirmPwd, setConfirmPwd] = useState("");
     const [showPwd, setShowPwd] = useState(false);
     const [showConfirmPwd, setShowConfirmPwd] = useState(false);
+    const [accepted, setAccepted] = useState(true);
     const { showSnackbar, } = useSnackbar();
 
     // wizard
@@ -195,7 +197,7 @@ const Register: FC<Props> = ({ navigation }) => {
         if (!validateStep(4)) return;
         try {
             setLoading(true);
-            const payload = { first_name: firstName, last_name: lastName, username, email, gender, password };
+            const payload = { first_name: firstName, last_name: lastName, username, email, gender, password, accept_sharing_data: accepted };
             await api.post(endpoints.users, payload);
             navigation.replace("login");
             showSnackbar("Tạo thành công!", "success");
@@ -362,6 +364,7 @@ const Register: FC<Props> = ({ navigation }) => {
                                         />
                                     }
                                 />
+
                                 {!!err.confirmPwd && <HelperText type="error">{err.confirmPwd}</HelperText>}
                             </>
                         )}
@@ -383,6 +386,27 @@ const Register: FC<Props> = ({ navigation }) => {
                             Đã có tài khoản? <Text style={{ fontWeight: "700" }}>Đăng nhập</Text>
                         </Button>
                     </Animated.View>
+                    {step === TOTAL_STEPS.length - 1 && (
+                        <Animated.View style={styles.agreeRow}>
+                            <Checkbox
+                                status={accepted ? "checked" : "unchecked"}
+                                onPress={() => {
+                                    setAccepted((v) => !v);
+                                    if (!accepted) {
+                                        setErr((e) => ({ ...e, accepted: null }));
+                                    }
+                                }}
+                            />
+                            <Text
+                                style={styles.agreeText}
+                                onPress={() => setAccepted((v) => !v)}
+                            >
+                                Đồng ý <Text style={{ fontWeight: "700", textDecorationLine: "underline", color: "#1c85fc" }}>
+                                    chia sẻ dữ liệu
+                                </Text> cho nội bộ hệ thống để cải thiện trải nghiệm người dùng.
+                            </Text>
+                        </Animated.View>
+                    )}
 
                     {step < TOTAL_STEPS.length - 1 ? (
                         <Button
@@ -473,6 +497,14 @@ const styles = StyleSheet.create({
         backgroundColor: "white",
         alignSelf: "stretch",
     },
+    agreeRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 16,
+        marginTop: 12,
+    },
+    agreeText: { flex: 1, color: "#333" },
+
 
     // Footer cố định
     footer: {
@@ -484,9 +516,7 @@ const styles = StyleSheet.create({
         paddingBottom: 16,
         marginBottom: 16,
         paddingTop: 8,
-        backgroundColor: "rgba(249,252,255,0.96)",
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderTopColor: "#e5eef7",
+    
     },
     footerBtn: { borderRadius: 14 },
 });

@@ -1,11 +1,10 @@
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEffect, useReducer, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
-import { createNativeStackNavigator, NativeStackScreenProps } from "@react-navigation/native-stack";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 
 import WelcomeScreen from "./components/WelcomeScreen";
 import Login from "./components/auth/Login";
@@ -13,11 +12,14 @@ import Register from "./components/auth/Register";
 import Home from "./components/home/Home";
 import { userReducer } from "./reducers/UserReducer";
 import { SnackbarProvider, UserContext, UserDispatch } from "./configs/Contexts";
-import api, { endpoints } from "./configs/Apis";
+import { api, endpoints, getTokens, logout } from "./configs/Apis";
 import Profile from "./components/profile/Profile";
 import { MD3LightTheme, PaperProvider, useTheme } from "react-native-paper";
 import { TouchableOpacity, TouchableOpacityProps } from "react-native";
 import Verify from "./components/auth/Verify";
+import ForgotPassword from "./components/auth/ForgotPassword";
+import { PortalHost, PortalProvider } from "@gorhom/portal";
+import NoteDetail from './components/profile/NoteDetails';
 
 // ===== Types =====
 export type RootStackParamList = {
@@ -28,34 +30,55 @@ export type AuthStackParamList = {
   welcomeScreen: undefined;
   login: undefined;
   register: undefined;
-  verify: {email: string, username?: string, password?: string};
+  verify: { email: string, username?: string, password?: string };
+  forgot: undefined;
 };
 export type MainTabParamList = {
   home: undefined;
   profile: undefined;
 };
+export type ProfileParamList = {
+  profile: undefined;
+  noteDetails: { id: number, navigation: any };
+}
 
 // ===== Navigators =====
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
+const ProfileStack = createNativeStackNavigator<ProfileParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const AuthNavigator = () => {
   return (
-    <AuthStack.Navigator screenOptions={{ headerShown: false }} initialRouteName="welcomeScreen">
+    <AuthStack.Navigator id={undefined} screenOptions={{ headerShown: false }} initialRouteName="welcomeScreen">
       <AuthStack.Screen name="welcomeScreen" component={WelcomeScreen} />
       <AuthStack.Screen name="login" component={Login} />
       <AuthStack.Screen name="register" component={Register} />
       <AuthStack.Screen name="verify" component={Verify} />
+      <AuthStack.Screen name="forgot" component={ForgotPassword} />
     </AuthStack.Navigator>
+  );
+}
+
+const ProfileNavigator = () => {
+  return (
+    <ProfileStack.Navigator id={undefined} screenOptions={{ headerShown: false }} initialRouteName="profile">
+      <ProfileStack.Screen name="profile" component={Profile} />
+      <ProfileStack.Screen name="noteDetails" component={NoteDetail} />
+    </ProfileStack.Navigator>
   );
 }
 
 const MainTabs = () => {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+
+  const TAB_BASE = 50; // icon to vừa đẹp
+  const tabBarHeight = TAB_BASE + Math.max(insets.bottom, 0);
 
   return (
-    <Tab.Navigator
+
+    <Tab.Navigator id={undefined}
       screenOptions={({ route }) => ({
         headerShown: false,
 
@@ -64,9 +87,9 @@ const MainTabs = () => {
 
         // 2) Style thanh tab cho thoáng & icon to
         tabBarStyle: {
-          height: 72,
+          height: tabBarHeight,
           paddingTop: 8,
-          paddingBottom: 12, 
+          paddingBottom: Math.max(insets.bottom, 12),
           borderTopWidth: 0.5,
           borderTopColor: "#e5e7eb", // xám nhẹ
           backgroundColor: "#ffffff",
@@ -86,7 +109,7 @@ const MainTabs = () => {
           return (
             <Ionicons
               name={name}
-              size={30}               // icon to hơn
+              size={30}
               color={color}
               style={{ marginTop: 2 }} // cân giữa dọc
             />
@@ -104,7 +127,7 @@ const MainTabs = () => {
       })}
     >
       <Tab.Screen name="home" component={Home} options={{ title: "Trang chủ" }} />
-      <Tab.Screen name="profile" component={Profile} options={{ title: "Hồ sơ" }} />
+      <Tab.Screen name="profile" component={ProfileNavigator} options={{ title: "Hồ sơ" }} />
     </Tab.Navigator>
   );
 };
@@ -113,9 +136,9 @@ export default () => {
     ...MD3LightTheme,
     colors: {
       ...MD3LightTheme.colors,
-      primary: '#1c85fc',     // màu nút, highlight
-      surface: '#b3c0dfff',     // nền dialog
-      onSurface: '#333333',   // màu chữ
+      primary: '#1c85fc', // màu nút, highlight
+      surface: '#b3c0dfff', // nền dialog
+      onSurface: '#333333', // màu chữ
     },
   };
 
@@ -127,22 +150,22 @@ export default () => {
     const checkLoginState = async () => {
       try {
         setLoading(true);
-        const refreshToken = (await AsyncStorage.getItem("refreshToken"));
-        if (refreshToken) {
-          const res = await api.post(endpoints.refresh, { refresh_token: refreshToken }); // trả access/refresh mới
-          await AsyncStorage.multiSet([
-            ["accessToken", res.data.access_token],
-            ["refreshToken", res.data.refresh_token],
-          ]);
-          const me = await api.get(endpoints.profile);
-          dispatch({ type: "hydrate", payload: me.data });
-        } else {
+
+        // Lấy token từ SecureStore
+        const { accessToken, refreshToken } = await getTokens();
+
+        if (!accessToken && !refreshToken) {
+          // Không có gì -> đăng xuất
           dispatch({ type: "logout" });
+          return;
         }
+
+        // Gọi thẳng profile (interceptor tự refresh nếu cần)
+        const me = await api.get(endpoints.profile);
+        dispatch({ type: "hydrate", payload: me.data });
       } catch (err) {
-        if (axios.isAxiosError(err)) {
-          console.log("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        }
+        // Bất kỳ lỗi nào -> coi như hết phiên
+        await logout(); // clear SecureStore
         dispatch({ type: "logout" });
       } finally {
         setLoading(false);
@@ -152,24 +175,33 @@ export default () => {
   }, []);
 
   return (
-    <PaperProvider theme={theme}>
-      <SafeAreaProvider>
-        <UserContext.Provider value={user}>
-          <UserDispatch.Provider value={dispatch}>
-            <SnackbarProvider>
-              <NavigationContainer>
-                <RootStack.Navigator screenOptions={{ headerShown: false }}>
-                  {!user ? (
-                    <RootStack.Screen name="auth" component={AuthNavigator} />
-                  ) : (
-                    <RootStack.Screen name="mainTabs" component={MainTabs} />
-                  )}
-                </RootStack.Navigator>
-              </NavigationContainer>
-            </SnackbarProvider>
-          </UserDispatch.Provider>
-        </UserContext.Provider>
-      </SafeAreaProvider>
-    </PaperProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <PortalProvider>
+        <PaperProvider theme={theme}>
+          <SafeAreaProvider>
+            <UserContext.Provider value={user}>
+              <UserDispatch.Provider value={dispatch}>
+                <SnackbarProvider>
+                  <NavigationContainer>
+                    <RootStack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
+                      {!user ? (
+                        <RootStack.Screen name="auth" component={AuthNavigator} />
+                      ) : (
+                        <RootStack.Screen name="mainTabs" component={MainTabs} />
+                      )}
+                    </RootStack.Navigator>
+                  </NavigationContainer>
+                </SnackbarProvider>
+
+                {/* Các PortalHost đặt làm sibling của NavigationContainer */}
+                <PortalHost name="root_portal" />
+                <PortalHost name="create_post_host" />
+                {/* nếu CreatePostModal của em dùng host này */}
+              </UserDispatch.Provider>
+            </UserContext.Provider>
+          </SafeAreaProvider>
+        </PaperProvider>
+      </PortalProvider>
+    </GestureHandlerRootView>
   );
 }

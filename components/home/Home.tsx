@@ -1,10 +1,11 @@
 import { FC, useContext } from "react";
-import { SafeAreaView, View, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { Text, Button } from "react-native-paper";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { MainTabParamList, RootStackParamList } from "../../App";
+import { MainTabParamList } from "../../App";
 import { UserDispatch } from "../../configs/Contexts";
+import { logout } from "../../configs/Apis";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type Props = NativeStackScreenProps<MainTabParamList, "home">;
 
@@ -23,9 +24,12 @@ const Home: FC<Props> = ({ navigation }) => {
           buttonColor="#e74c3c"
           textColor="white"
           style={styles.button}
-          onPress={() => userDispatch({
-            type:"logout"
-          })}
+          onPress={async () => {
+            await logout();
+            userDispatch({
+              type: "logout"
+            });
+          }}
         >
           Đăng xuất
         </Button>

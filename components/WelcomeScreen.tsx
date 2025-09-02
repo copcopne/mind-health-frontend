@@ -1,10 +1,11 @@
 import { FC } from "react";
-import { SafeAreaView, View } from "react-native";
+import { View } from "react-native";
 import { Button, Text } from "react-native-paper";
 import GlobalStyle from "../styles/GlobalStyle";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../App";
 import WelcomeScreenStyle from "../styles/WelcomeScreenStyle";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "welcomeScreen">;
 

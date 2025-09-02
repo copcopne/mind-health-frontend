@@ -1,20 +1,19 @@
 import { FC, useContext, useState } from "react";
 import {
-    SafeAreaView,
     View,
     StyleSheet,
     TouchableWithoutFeedback,
     Keyboard,
 } from "react-native";
-import { Button, Text, TextInput, HelperText, IconButton, Portal, Dialog } from "react-native-paper";
+import { Button, Text, TextInput, HelperText, Portal, Dialog } from "react-native-paper";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../../App";
-import api, { endpoints } from "../../configs/Apis";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { api, endpoints, setTokens } from "../../configs/Apis";
 import { UserDispatch } from "../../configs/Contexts";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import TopBar from "../TopBar";
 import axios from "axios";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "login">;
 
@@ -67,11 +66,11 @@ const Login: FC<Props> = ({ navigation }) => {
                 });
                 return;
             }
-            
-            await AsyncStorage.multiSet([
-                ["accessToken", res.data.access_token],
-                ["refreshToken", res.data.refresh_token],
-            ]);
+
+            await setTokens({
+                accessToken: res.data.access_token,
+                refreshToken: res.data.refresh_token,
+            });
 
             userDispatch({
                 type: "login",
@@ -84,7 +83,7 @@ const Login: FC<Props> = ({ navigation }) => {
                 msg = err.response?.data?.message;
             } else {
                 console.error(err);
-                console.error(err.status);
+                console.error(err.response?.status);
                 console.error(err.response?.data);
             }
             setErrGeneral(msg);
@@ -149,7 +148,7 @@ const Login: FC<Props> = ({ navigation }) => {
 
                             {/* Forgot password */}
                             <Button
-                                onPress={() => {/* TODO: điều hướng quên mật khẩu */ }}
+                                onPress={() => {navigation.navigate('forgot')}}
                                 compact
                                 uppercase={false}
                                 style={{ alignSelf: "flex-end", marginTop: -2 }}

@@ -10,6 +10,7 @@ type Props = {
 };
 
 const HEADER_HEIGHT = 56;      // chiều cao cố định của thanh header (không tính safe area)
+const SIDE = 56;
 
 export const TopBar: React.FC<Props> = ({ onBack, rightText, paddingH = 20 }) => {
   const insets = useSafeAreaInsets();
@@ -19,28 +20,32 @@ export const TopBar: React.FC<Props> = ({ onBack, rightText, paddingH = 20 }) =>
       style={[
         styles.container,
         {
-          paddingTop: insets.top,            // tôn trọng safe area
+          paddingTop: insets.top,
           height: insets.top + HEADER_HEIGHT,
           paddingHorizontal: paddingH,
         },
       ]}
     >
-      <IconButton
-        icon="arrow-left"
-        size={24}
-        onPress={onBack}
-        iconColor="#1c85fc"
-        style={{ margin: 0 }}                // *** xoá margin mặc định ***
-      />
+      {/* LEFT */}
+      <View style={{ width: SIDE, alignItems: "flex-start", justifyContent: "center" }}>
+        <IconButton
+          icon="arrow-left"
+          size={24}
+          onPress={onBack}
+          iconColor="#1c85fc"
+          style={{ margin: 0, padding: 0 }}
+        />
+      </View>
+
+      {/* CENTER SPACE */}
       <View style={{ flex: 1 }} />
-      {rightText ? (
-        <Text style={{ color: "#1c85fc", minWidth: 44, textAlign: "right" }}>
-          {rightText}
-        </Text>
-      ) : (
-        // Giữ chỗ để nút back không xê dịch giữa các màn
-        <View style={{ width: 44 }} />
-      )}
+
+      {/* RIGHT */}
+      <View style={{ width: SIDE, alignItems: "center", justifyContent: "center" }}>
+        {rightText ? (
+          <Text style={{ color: "#1c85fc" }}>{rightText}</Text>
+        ) : null}
+      </View>
     </View>
   );
 };
