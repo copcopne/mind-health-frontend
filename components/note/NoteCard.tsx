@@ -2,24 +2,9 @@ import React, { FC, useMemo } from "react";
 import { StyleSheet, TouchableWithoutFeedback, View } from "react-native";
 import { Card, Text, Chip, Divider } from "react-native-paper";
 import { Note } from "../../configs/Types";
+import { moodMetaByCode, normalizeMood } from "../../configs/Moods";
 
 type Props = { note: Note, navigation: any };
-
-export const MOOD_LABELS: Record<string, string> = {
-  NEGATIVE: "Tiêu cực",
-  SLIGHTLY_NEGATIVE: "Hơi tiêu cực",
-  NEUTRAL: "Ổn",
-  SLIGHTLY_POSITIVE: "Hơi tích cực",
-  POSITIVE: "Tích cực",
-};
-
-export const MOOD_COLOR: Record<string, string> = {
-  NEGATIVE: "#e74c3c",
-  SLIGHTLY_NEGATIVE: "#e67e22",
-  NEUTRAL: "#7f8c8d",
-  SLIGHTLY_POSITIVE: "#27ae60",
-  POSITIVE: "#16a085",
-};
 
 const NoteCard: FC<Props> = ({ note, navigation }) => {
   const createdAtStr = useMemo(() => {
@@ -33,15 +18,14 @@ const NoteCard: FC<Props> = ({ note, navigation }) => {
     }
   }, [note]);
 
-  const moodLabel = MOOD_LABELS[note.moodLevel] ?? note.moodLevel;
-  const moodColor = MOOD_COLOR[note.moodLevel] ?? "#7f8c8d";
+  const moodCode = normalizeMood((note as any).moodLevel);
+  const moodMeta = moodCode ? moodMetaByCode[moodCode] : null;
   const otherTopics = note.otherTopics ?? [];
 
   return (
     <TouchableWithoutFeedback
       onPress={() => navigation.navigate("noteDetails", {
-        id: note.id,
-        navigation: navigation
+        id: note.id
       })}
     >
       <Card style={styles.card} mode="elevated">
@@ -54,11 +38,21 @@ const NoteCard: FC<Props> = ({ note, navigation }) => {
               compact
               style={[
                 styles.moodChip,
-                { borderColor: moodColor, paddingHorizontal: 10, paddingVertical: 2, minHeight: 30 }
+                {
+                  borderColor: moodMeta?.color ?? "rgba(0,0,0,0.2)",
+                  paddingHorizontal: 10,
+                  paddingVertical: 2,
+                  minHeight: 30,
+                },
               ]}
-              textStyle={{ color: moodColor, fontSize: 13, lineHeight: 18, includeFontPadding: false }}
+              textStyle={{
+                color: moodMeta?.color ?? "#7f8c8d",
+                fontSize: 13,
+                lineHeight: 18,
+                includeFontPadding: false,
+              }}
             >
-              {moodLabel}
+              {moodMeta ? `${moodMeta.emoji} ${moodMeta.label}` : "—"}
             </Chip>
           </View>
 
@@ -102,6 +96,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     overflow: "hidden",
     width: "100%",
+    backgroundColor: "#f7faff",     // nền xanh dương rất nhạt
+    borderWidth: 1,
+    borderColor: "#dbeafe",         // viền xanh nhạt
+    // optional: nhẹ nhàng hơn chút về đổ bóng
+    shadowColor: "#1c85fc",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
   },
   content: {
     paddingVertical: 12,

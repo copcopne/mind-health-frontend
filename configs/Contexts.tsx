@@ -70,7 +70,7 @@ export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({
                 ? "#ff9800"
                 : "#2196f3", // info
             position: "absolute",
-            bottom: insets.bottom + 56,
+            bottom: insets.bottom + 60,
             left: 0,
             right: 0,
           }}

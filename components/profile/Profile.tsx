@@ -6,13 +6,15 @@ import { UserContext } from "../../configs/Contexts";
 import { api, endpoints } from "../../configs/Apis";
 import EditProfileSheet, { EditProfileSheetRef } from "./EditProfileSheet";
 import { mapNote, Note } from "../../configs/Types";
-import NoteCard from "./NoteCard";
 import { ProfileParamList } from "../../App";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import NoteCard from "../note/NoteCard";
+import CreateNoteSheet, { CreateNoteSheetRef } from "../note/CreateNoteSheet";
 
-type Props = NativeStackScreenProps<ProfileParamList, "profile">;
+type Props = NativeStackScreenProps<ProfileParamList, "profileStack">;
 
 const Profile: FC<Props> = ({ navigation }) => {
+  const createRef = useRef<CreateNoteSheetRef>(null);
   const user = useContext(UserContext);
   const editRef = useRef<EditProfileSheetRef>(null);
   const openEdit = () => {
@@ -61,17 +63,14 @@ const Profile: FC<Props> = ({ navigation }) => {
             >
               Chỉnh sửa thông tin
             </Button>
-
             <Button
               mode="outlined"
               textColor="#1c85fc"
               style={styles.editBtn}
               onPress={() => {
-                console.log("Logout");
+                createRef?.current?.open();
               }}
-            >
-              Đăng xuất
-            </Button>
+            >Thêm ghi chú mới</Button>
           </View>
         </Card.Content>
       </Card>
@@ -81,6 +80,12 @@ const Profile: FC<Props> = ({ navigation }) => {
       <View style={styles.body}>
         {moodEndtries.map(m => <NoteCard key={m.id} note={m} navigation={navigation} ></NoteCard> )}
       </View>
+      <CreateNoteSheet
+        ref={createRef}
+        onCreated={() => {
+          loadMoodEntries();
+        }}
+      />
 
       <EditProfileSheet ref={editRef} />
     </SafeAreaView>

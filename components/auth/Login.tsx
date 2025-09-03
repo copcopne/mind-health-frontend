@@ -11,7 +11,7 @@ import { AuthStackParamList } from "../../App";
 import { api, endpoints, setTokens } from "../../configs/Apis";
 import { UserDispatch } from "../../configs/Contexts";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import TopBar from "../TopBar";
+import TopBar from "../common/TopBar";
 import axios from "axios";
 import { SafeAreaView } from "react-native-safe-area-context";
 

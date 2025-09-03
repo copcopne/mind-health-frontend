@@ -7,7 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { UserDispatch, useSnackbar } from "../../configs/Contexts"
 import type { AuthStackParamList } from "../../App"
 import { api, endpoints, setTokens } from "../../configs/Apis"
-import TopBar from "../TopBar"
+import TopBar from "../common/TopBar"
 import { useNavigationState } from "@react-navigation/native"
 
 type Props = NativeStackScreenProps<AuthStackParamList, "verify">

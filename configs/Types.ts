@@ -6,7 +6,6 @@ export type Note = {
   otherTopics: string[]
   sentimentScore: number | null
   isCrisis: boolean
-  isEditable: boolean
   createdAt: Date
 }
 
@@ -18,7 +17,8 @@ export type NoteDetail = {
   otherTopics: string[]
   sentimentScore: number | null
   isCrisis: boolean
-  isEditable: boolean
+  canEdit: boolean
+  canFeedback: boolean
   createdAt: Date
 }
 
@@ -31,7 +31,8 @@ type NoteResponse = {
   other_topics: string[] | null
   sentiment_score: number | null
   is_crisis: boolean | null
-  is_editable: boolean
+  can_edit: boolean
+  can_feedback: boolean
   created_at: Date
 }
 
@@ -44,7 +45,6 @@ export function mapNote(res: NoteResponse): Note {
     otherTopics: res.other_topics ?? [],
     sentimentScore: res.sentiment_score,
     isCrisis: res.is_crisis ?? false,
-    isEditable: res.is_editable,
     createdAt: res.created_at
   }
 }
@@ -57,7 +57,10 @@ export function mapNoteDetail(res: NoteResponse): NoteDetail {
     otherTopics: res.other_topics ?? [],
     sentimentScore: res.sentiment_score,
     isCrisis: res.is_crisis ?? false,
-    isEditable: res.is_editable,
+    canEdit: res.can_edit,
+    canFeedback: res.can_feedback,
     createdAt: res.created_at
   }
 }
+
+export type TargetType = "MESSAGE" | "MOOD_ENTRY" | string;

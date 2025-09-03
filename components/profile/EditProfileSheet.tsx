@@ -128,7 +128,6 @@ const EditProfileSheet = forwardRef<EditProfileSheetRef, Props>(function EditPro
         )}
       >
         <BottomSheetView style={{ flex: 1 }}>
-          <SafeAreaView style={styles.wrapper}>
             {/* Header */}
             <View style={styles.headerRow}>
               <Button onPress={() => sheetRef.current?.close()} disabled={loading}>
@@ -212,7 +211,6 @@ const EditProfileSheet = forwardRef<EditProfileSheetRef, Props>(function EditPro
               </View>
             </KeyboardAwareScrollView>
 
-          </SafeAreaView>
         </BottomSheetView>
       </BottomSheet>
     </Portal>
@@ -222,7 +220,6 @@ const EditProfileSheet = forwardRef<EditProfileSheetRef, Props>(function EditPro
 export default React.memo(EditProfileSheet);
 
 const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: "#fff" },
   container: { padding: 16, paddingBottom: 32 },
   headerRow: {
     flexDirection: "row",

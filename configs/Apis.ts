@@ -25,8 +25,10 @@ export const endpoints = {
 
   moodEntries: "/mood-entries",
   moodEntryDetail: (id: number) => `/mood-entries/${id}`, 
-
   feedbackMoodEntry: (id: number) => `/mood-entries/${id}/feedback`,
+
+  feedbacks: `/feedbacks`,
+  feedback: (id: number) => `/feedbacks/${id}`,
 
   
 } as const;

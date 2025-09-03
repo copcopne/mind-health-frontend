@@ -22,7 +22,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../../App";
 import { api, endpoints } from "../../configs/Apis";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import TopBar from "../TopBar";
+import TopBar from "../common/TopBar";
 import { useSnackbar } from "../../configs/Contexts";
 import axios from "axios";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -226,7 +226,7 @@ const Register: FC<Props> = ({ navigation }) => {
 
     return (
         <SafeAreaView style={styles.wrapper}>
-            <TopBar onBack={goBack} rightText={`${step + 1}/${TOTAL_STEPS.length}`} />
+            <TopBar onBack={goBack} title="Đăng ký tài khoản" rightText={`${step + 1}/${TOTAL_STEPS.length}`} />
             <View style={styles.body}>
                 <KeyboardAwareScrollView
                     contentContainerStyle={styles.scrollContent}
@@ -236,13 +236,8 @@ const Register: FC<Props> = ({ navigation }) => {
                     keyboardShouldPersistTaps="handled"
                     style={{ flex: 1 }}
                 >
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <Text style={styles.title}>Tạo tài khoản</Text>
-                        <Text style={styles.subtitle}>Bước {step + 1} / {TOTAL_STEPS.length}</Text>
-                    </View>
 
-                    <ProgressBar progress={progress} color="#1c85fc" style={{ height: 6, borderRadius: 6 }} />
+                    <ProgressBar progress={progress} color="#1c85fc" style={{ height: 6, borderRadius: 6, marginTop: 56 }} />
 
                     {/* Nội dung step (animated) */}
                     <Animated.View style={[styles.formCentered, { opacity, transform: [{ translateX }] }]}>
@@ -467,7 +462,6 @@ const styles = StyleSheet.create({
         flexDirection: "row", alignItems: "center", marginBottom: 8,
         paddingTop: 24,
     },
-    header: { marginTop: 20, marginBottom: 12, alignItems: "center" },
     title: { fontSize: 22, fontWeight: "bold", color: "#1c85fc" },
     subtitle: { marginTop: 4, fontSize: 14, color: "#666" },
     form: { marginTop: 8, paddingHorizontal: 2 },

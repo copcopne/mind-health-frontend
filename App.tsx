@@ -19,7 +19,7 @@ import { TouchableOpacity, TouchableOpacityProps } from "react-native";
 import Verify from "./components/auth/Verify";
 import ForgotPassword from "./components/auth/ForgotPassword";
 import { PortalHost, PortalProvider } from "@gorhom/portal";
-import NoteDetail from './components/profile/NoteDetails';
+import NoteDetail from './components/note/NoteDetails';
 
 // ===== Types =====
 export type RootStackParamList = {
@@ -38,7 +38,7 @@ export type MainTabParamList = {
   profile: undefined;
 };
 export type ProfileParamList = {
-  profile: undefined;
+  profileStack: undefined;
   noteDetails: { id: number, navigation: any };
 }
 
@@ -62,8 +62,8 @@ const AuthNavigator = () => {
 
 const ProfileNavigator = () => {
   return (
-    <ProfileStack.Navigator id={undefined} screenOptions={{ headerShown: false }} initialRouteName="profile">
-      <ProfileStack.Screen name="profile" component={Profile} />
+    <ProfileStack.Navigator id={undefined} screenOptions={{ headerShown: false }} initialRouteName="profileStack">
+      <ProfileStack.Screen name="profileStack" component={Profile} />
       <ProfileStack.Screen name="noteDetails" component={NoteDetail} />
     </ProfileStack.Navigator>
   );

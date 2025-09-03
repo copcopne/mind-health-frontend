@@ -10,7 +10,7 @@ import { Button, Text, TextInput, HelperText, Portal, Dialog } from "react-nativ
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../../App";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import TopBar from "../TopBar";
+import TopBar from "../common/TopBar";
 import { api, endpoints } from "../../configs/Apis";
 import axios from "axios";
 
