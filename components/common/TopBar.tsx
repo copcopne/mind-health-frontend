@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 
 type Props = {
-  onBack: () => void;
+  onBack?: () => void;
   title?: string;
   rightText?: string;
   paddingH?: number;
@@ -27,7 +27,7 @@ export const TopBar: React.FC<Props> = ({ onBack, title, rightText, paddingH = 2
         intensity={50}
         tint="light"
         experimentalBlurMethod="dimezisBlurView"
-        style={StyleSheet.absoluteFill}
+        style={StyleSheet.absoluteFillObject}
       />
 
       {/* LAYER 2: Content on top of blur */}
@@ -41,14 +41,16 @@ export const TopBar: React.FC<Props> = ({ onBack, title, rightText, paddingH = 2
       >
         {/* LEFT */}
         <View style={styles.side}>
-          <IconButton
-            icon="arrow-left"
-            size={24}
-            onPress={onBack}
-            iconColor="#1c85fc"
-            style={{ margin: 0, padding: 0 }}
-            accessibilityLabel="Quay lại"
-          />
+          {!!onBack && (
+            <IconButton
+              icon="arrow-left"
+              size={24}
+              onPress={onBack}
+              iconColor="#1c85fc"
+              style={{ margin: 0, padding: 0 }}
+              accessibilityLabel="Quay lại"
+            />
+          )}
         </View>
 
         {/* CENTER */}

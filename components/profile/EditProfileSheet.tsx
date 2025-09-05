@@ -192,14 +192,6 @@ const EditProfileSheet = forwardRef<EditProfileSheetRef, Props>(function EditPro
                 ]}
                 style={styles.segment}
               />
-              {/* Nút đổi mật khẩu */}
-              <Button
-                mode="outlined"
-                style={styles.passwordBtn}
-                onPress={() => console.log("Cập nhật mật khẩu")}
-              >
-                Cập nhật mật khẩu
-              </Button>
 
               {/* Chia sẻ dữ liệu */}
               <View style={styles.checkboxRow}>
@@ -238,11 +230,5 @@ const styles = StyleSheet.create({
   inputHalf: {
     flex: 1,
     marginVertical: 3
-  },
-  passwordBtn: {
-    flex: 1,
-    alignSelf: "flex-start",
-    marginVertical: 6,
-    borderRadius: 8,
   },
 });

@@ -36,7 +36,7 @@ export type CreateNoteSheetRef = {
 
 type Props = {
   onCreated?: () => void;
-  onUpdated?: (id: number) => void;
+  onUpdated?: () => void;
 };
 
 const CreateNoteSheet = forwardRef<CreateNoteSheetRef, Props>(function CreateNoteSheet(
@@ -136,7 +136,7 @@ const CreateNoteSheet = forwardRef<CreateNoteSheetRef, Props>(function CreateNot
       } else {
         await api.patch?.(endpoints.moodEntryDetail(editingId), payload);
         showSnackbar("Đã cập nhật nhật ký ✨");
-        onUpdated?.(editingId);
+        onUpdated?.();
       }
 
       sheetRef.current?.close();

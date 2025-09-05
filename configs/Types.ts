@@ -64,3 +64,15 @@ export function mapNoteDetail(res: NoteResponse): NoteDetail {
 }
 
 export type TargetType = "MESSAGE" | "MOOD_ENTRY" | string;
+
+
+export type ApiPage = {
+    content: any[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+    sort?: string;
+};

@@ -30,6 +30,9 @@ export const endpoints = {
   feedbacks: `/feedbacks`,
   feedback: (id: number) => `/feedbacks/${id}`,
 
+  messages: `/messages`,
+  feedbackMessage: (id: number) => `/messages/${id}/feedback`,
+
   
 } as const;
 

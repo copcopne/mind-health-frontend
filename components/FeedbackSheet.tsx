@@ -31,7 +31,14 @@ export type FeedbackSheetRef = {
   close: () => void;
 };
 
-const FeedbackSheet = forwardRef<FeedbackSheetRef>((_, ref) => {
+type Props = {
+  onSubmitted?: () => void;
+};
+
+const FeedbackSheet = forwardRef<FeedbackSheetRef, Props>(function FeedbackSheet(
+  { onSubmitted },
+  ref
+) {
   const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["60%"], []);
   const { showSnackbar } = useSnackbar();
@@ -40,7 +47,7 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef>((_, ref) => {
   const [content, setContent] = useState("");
   const [satisfy, setSatisfy] = useState<string | null>(null);
 
-const [feedbackId, setFeedbackId] = useState<number>(-1);
+  const [feedbackId, setFeedbackId] = useState<number>(-1);
   const [targetId, setTargetId] = useState<number | null>(null);
   const [targetType, setTargetType] = useState<TargetType>("");
 
@@ -109,22 +116,30 @@ const [feedbackId, setFeedbackId] = useState<number>(-1);
         satisfy_level: satisfy,
       });
     }
-  };
-
-  /** Cập nhật phản hồi hiện có */
-  const updateFeedback = async () => {
-    if (feedbackId > 0) {
-      return api.put(endpoints.feedback(feedbackId), {
+    else if (targetType === "MESSAGE" && targetId != null) {
+      return api.post(endpoints.feedbackMessage(targetId), {
         content,
         satisfy_level: satisfy,
       });
     }
   };
 
+  /** Cập nhật phản hồi hiện có */
+  const updateFeedback = async () => {
+    if (feedbackId > 0) {
+      await api.put(endpoints.feedback(feedbackId), {
+        content,
+        satisfy_level: satisfy,
+      });
+      onSubmitted?.();
+    }
+  };
+
   /** Xóa phản hồi hiện có */
   const deleteFeedback = async () => {
     if (feedbackId > 0) {
-      return api.delete(endpoints.feedback(feedbackId));
+      await api.delete(endpoints.feedback(feedbackId));
+      onSubmitted?.();
     }
   };
 
@@ -155,6 +170,7 @@ const [feedbackId, setFeedbackId] = useState<number>(-1);
         await postFeedback();
         showSnackbar("Đã gửi phản hồi", "success");
       }
+      onSubmitted?.();
       sheetRef.current?.close();
       // dọn form
       setContent("");

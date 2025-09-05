@@ -1,6 +1,6 @@
 import { FC, memo, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View, ScrollView, LayoutAnimation, TouchableWithoutFeedback } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { StyleSheet, View, ScrollView, LayoutAnimation, TouchableWithoutFeedback, RefreshControl } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import {
   Card,
@@ -14,7 +14,7 @@ import { ProfileParamList } from "../../App";
 import { mapNoteDetail, NoteDetail } from "../../configs/Types";
 import { api, endpoints } from "../../configs/Apis";
 import MyLoadingIndicator from "../common/MyLoadingIndicator";
-import TopBar from "../common/TopBar";
+import TopBar, { TOPBAR_TOTAL_HEIGHT } from "../common/TopBar";
 import CreateNoteSheet, { CreateNoteSheetRef } from "./CreateNoteSheet";
 import { moodMetaByCode, normalizeMood } from "../../configs/Moods";
 import SharedDialog, { SharedDialogRef } from "../common/SharedDialog";
@@ -33,10 +33,15 @@ const NoteDetails: FC = () => {
   } = useRoute<NoteDetailsRoute>();
   const navigation = useNavigation<any>();
 
+  const insets = useSafeAreaInsets();
+  const headerH = TOPBAR_TOTAL_HEIGHT(insets.top);
+
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [confirmVisible, setConfirmVisible] = useState(false);
   const [data, setData] = useState<NoteDetail | null>(null);
+
+  // Refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   // Thu gọn / mở rộng
   const [expanded, setExpanded] = useState(false);
@@ -70,7 +75,6 @@ const NoteDetails: FC = () => {
       setLoading(true);
       const res = await api.get(endpoints.moodEntryDetail(id));
       const mapped = mapNoteDetail(res.data);
-      console.info(mapped);
       setData(mapped);
     } catch (err) {
       console.error(err);
@@ -78,6 +82,16 @@ const NoteDetails: FC = () => {
       setLoading(false);
     }
   };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadData();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const showDeleteConfirm = () => {
     dialogRef.current?.open({
       title: "Xác nhận xoá",
@@ -127,16 +141,15 @@ const NoteDetails: FC = () => {
       console.error(e);
     } finally {
       setDeleting(false);
-      setConfirmVisible(false);
     }
   };
 
   const handleOpenFeedbackSheet = () => {
-    if (data.canFeedback === true)
-      feedbackRef.current?.open(data?.id, "MOOD_ENTRY");
+    if (data?.canFeedback === true)
+      feedbackRef.current?.open(data?.id!, "MOOD_ENTRY");
     else
-      feedbackRef.current?.openExists(data?.id, "MOOD_ENTRY");
-  }
+      feedbackRef.current?.openExists(data?.id!, "MOOD_ENTRY");
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -144,10 +157,17 @@ const NoteDetails: FC = () => {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 0 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: headerH }]} // chừa TopBar tuyệt đối
         showsVerticalScrollIndicator={false}
-        contentInsetAdjustmentBehavior="never">
-
+        contentInsetAdjustmentBehavior="never"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            progressViewOffset={headerH} // dời spinner xuống dưới TopBar (Android)
+          />
+        }
+      >
         <Card style={styles.card} mode="elevated">
           {/* HEADER */}
           <Card.Title
@@ -167,7 +187,7 @@ const NoteDetails: FC = () => {
                 }
                 <IconButton
                   icon="delete-outline"
-                  onPress={showDeleteConfirm}
+                  onPress={onDelete}
                   accessibilityLabel="Xoá"
                   style={styles.actionBtn}
                 />
@@ -200,7 +220,7 @@ const NoteDetails: FC = () => {
               <View style={styles.contentPressWrap}>
                 <PText style={styles.sectionLabel}>Nội dung</PText>
 
-                {/* 1) TEXT ẨN để đo */}
+                {/* TEXT ẨN đo dòng */}
                 {hasContent && measuredLines === null && (
                   <PText
                     style={[styles.contentBody, styles.hiddenMeasure]}
@@ -214,7 +234,7 @@ const NoteDetails: FC = () => {
                   </PText>
                 )}
 
-                {/* 2) TEXT HIỂN THỊ */}
+                {/* TEXT HIỂN THỊ */}
                 <PText
                   style={styles.contentBody}
                   numberOfLines={expanded ? undefined : MAX_LINES}
@@ -229,7 +249,7 @@ const NoteDetails: FC = () => {
               </View>
             </TouchableWithoutFeedback>
 
-            {/* ===== INSIGHT BOX (nổi bật) ===== */}
+            {/* ===== INSIGHT BOX ===== */}
             <View style={styles.insightBox}>
               <View style={styles.insightHeader}>
                 <PText style={styles.insightTitle}>✨ Dữ liệu phân loại của hệ thống</PText>
@@ -253,13 +273,12 @@ const NoteDetails: FC = () => {
                 )}
               </View>
 
-
               {/* OTHER TOPICS */}
               <View style={styles.insightSection}>
                 <PText style={styles.sectionLabel}>Các chủ đề phụ</PText>
-                {otherTopics.length > 0 ? (
+                {(data?.otherTopics?.length ?? 0) > 0 ? (
                   <View style={styles.chipsWrap}>
-                    {otherTopics.map((t, idx) => (
+                    {data!.otherTopics!.map((t, idx) => (
                       <Chip
                         key={`${t}-${idx}`}
                         compact
@@ -276,12 +295,9 @@ const NoteDetails: FC = () => {
                 )}
               </View>
 
-
-              {/* SENTIMENT + ASK + BUTTON (separate row) */}
+              {/* SENTIMENT + ASK + BUTTON */}
               <View style={styles.insightSection}>
                 <PText style={styles.sectionLabel}>Điểm cảm xúc</PText>
-
-                {/* Score hiển thị riêng một dòng */}
                 <PText style={styles.value}>{data?.sentimentScore ?? "Chưa tính"}</PText>
 
                 <View style={styles.askRow}>
@@ -297,14 +313,11 @@ const NoteDetails: FC = () => {
                     contentStyle={styles.linkBtnContent}
                     labelStyle={styles.linkBtnLabel}
                   >
-                    {data?.canFeedback ?"Phản hồi" : "Xem phản hồi"}
+                    {data?.canFeedback ? "Phản hồi" : "Xem phản hồi"}
                   </Button>
                 </View>
-
               </View>
-
             </View>
-
           </Card.Content>
         </Card>
       </ScrollView>
@@ -313,13 +326,13 @@ const NoteDetails: FC = () => {
 
       <CreateNoteSheet
         ref={createRef}
-        onCreated={() => {
+        onUpdated={() => {
           // tạo xong thì load lại chi tiết
           loadData();
         }}
       />
       <SharedDialog ref={dialogRef} />
-      <FeedbackSheet ref={feedbackRef} />
+      <FeedbackSheet ref={feedbackRef} onSubmitted={loadData} />
     </SafeAreaView>
   );
 };
@@ -327,22 +340,20 @@ const NoteDetails: FC = () => {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#f6f8fb" },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 72 }, // chừa TopBar
+  scrollContent: { paddingHorizontal: 16 }, // paddingTop set động theo headerH
   card: {
     borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: "#f7faff",     // nền xanh dương rất nhạt
+    backgroundColor: "#f7faff",
     borderWidth: 1,
-    borderColor: "#dbeafe",         // viền xanh nhạt
-    // optional: nhẹ nhàng hơn chút về đổ bóng
+    borderColor: "#dbeafe",
     shadowColor: "#1c85fc",
     shadowOpacity: 0.08,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 1,
-    marginBottom: 15,
+    marginBottom: 22,
   },
-
 
   actions: { 
     flexDirection: "row", 
@@ -370,21 +381,10 @@ const styles = StyleSheet.create({
     opacity: 0,
     zIndex: -1,
     width: "100%",
-    // @ts-ignore
     pointerEvents: "none",
   },
 
-  moreBtn: {
-    alignSelf: "flex-start",
-    marginTop: 6,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    backgroundColor: "rgba(28,133,252,0.08)",
-  },
-  moreText: { fontSize: 13, color: "#1c85fc", fontWeight: "600" },
-
-  line: { marginVertical: 8, opacity: 0.12 },
+  moreText: { fontSize: 13, color: "#1c85fc", fontWeight: "600", marginTop: 6 },
 
   value: { fontSize: 14, lineHeight: 20, color: "#1c2a3a" },
 
@@ -392,8 +392,8 @@ const styles = StyleSheet.create({
   topicChip: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(28,133,252,0.35)",  // viền xanh
-    backgroundColor: "rgba(28,133,252,0.10)", // nền xanh nhạt
+    borderColor: "rgba(28,133,252,0.35)",
+    backgroundColor: "rgba(28,133,252,0.10)",
     paddingHorizontal: 5,
   },
   topicChipText: {
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     padding: 12,
     paddingBottom: 6,
     borderRadius: 12,
-    backgroundColor: "rgba(28,133,252,0.06)",    // xanh nhạt
+    backgroundColor: "rgba(28,133,252,0.06)",
     borderWidth: 1,
     borderColor: "rgba(28,133,252,0.18)",
   },
@@ -421,13 +421,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#0b203a",
   },
-  insightTagText: { fontSize: 12 },
-  insightSection: {
-    marginTop: 8,
-  },
+  insightSection: { marginTop: 8 },
+
   mainTopicChip: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(28,133,252,0.12)", // nền xanh nhạt
+    backgroundColor: "rgba(28,133,252,0.12)",
     borderColor: "rgba(28,133,252,0.25)",
     borderWidth: 1,
     height: 32,
@@ -438,30 +436,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#0b203a",
   },
-  inlineRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",   // value bên trái, button bên phải
-    marginTop: 2,
-  },
 
-  linkBtn: {
-    alignSelf: "auto",
-    margin: 0,
-  },
+  linkBtn: { alignSelf: "auto", margin: 0 },
+  linkBtnContent: { paddingHorizontal: 0, minHeight: 28, margin: 0 },
+  linkBtnLabel: { fontSize: 14, fontWeight: "700", color: "#1c85fc" },
 
-  linkBtnContent: {
-    paddingHorizontal: 0,              // gọn như link
-    minHeight: 28,
-    margin: 0,
-  },
-
-  linkBtnLabel: {
-    fontSize: 14,
-    fontWeight: "700",
-    // màu theo tông xanh của app
-    color: "#1c85fc",
-  },
   askRow: {
     marginTop: 12,
     flexDirection: "row",
@@ -470,11 +449,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
-  askText: {
-    flex: 1,
-    fontSize: 13,
-    color: "#405166",
-  },
+  askText: { flex: 1, fontSize: 13, color: "#405166" },
 });
 
 export default memo(NoteDetails);
