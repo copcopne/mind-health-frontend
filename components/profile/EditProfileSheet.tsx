@@ -19,7 +19,6 @@ import {
   ActivityIndicator,
 } from "react-native-paper";
 import { BackHandler, Keyboard, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { UserContext, UserDispatch } from "../../configs/Contexts";
 import { api, endpoints } from "../../configs/Apis";
@@ -27,6 +26,10 @@ import { api, endpoints } from "../../configs/Apis";
 export type EditProfileSheetRef = { open: () => void; close: () => void };
 
 type Props = {};
+
+// ====== MÀU CHỦ ĐẠO XANH ======
+const BLUE = "#1c85fc";
+const BLUE_OUTLINE = "#cfe3ff";
 
 const EditProfileSheet = forwardRef<EditProfileSheetRef, Props>(function EditProfileSheet(_props, ref) {
   const user = useContext(UserContext);
@@ -59,15 +62,12 @@ const EditProfileSheet = forwardRef<EditProfileSheetRef, Props>(function EditPro
       Keyboard.dismiss();
       return;
     }
-
     const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
       sheetRef.current?.close();
       return true;
     });
-
     return () => backHandler.remove();
   }, [isSheetOpen]);
-
 
   const validate = () => {
     let ok = true;
@@ -95,17 +95,25 @@ const EditProfileSheet = forwardRef<EditProfileSheetRef, Props>(function EditPro
         accept_sharing_data: acceptSharing,
       };
       const res = await api.patch(endpoints.profile, payload);
-
       userDispatch({ type: "hydrate", payload: res.data });
-
       sheetRef.current?.close();
-    } catch (e) {
+    } catch (e: any) {
       console.error("Lỗi cập nhật profile:", e);
-      console.error(e.response?.status);
-      console.error(e.response);
+      console.error(e?.response?.status);
+      console.error(e?.response);
     } finally {
       setLoading(false);
     }
+  };
+
+  // ====== Props chung cho TextInput để đồng bộ màu xanh
+  const commonInputProps = {
+    mode: "outlined" as const,
+    outlineColor: BLUE_OUTLINE,
+    activeOutlineColor: BLUE,
+    selectionColor: BLUE,
+    underlineColor: BLUE_OUTLINE,
+    style: styles.input,
   };
 
   return (
@@ -115,94 +123,104 @@ const EditProfileSheet = forwardRef<EditProfileSheetRef, Props>(function EditPro
         index={-1}
         snapPoints={snapPoints}
         enablePanDownToClose
-        onChange={(index) => {
-          setIsSheetOpen(index !== -1);
-        }}
+        onChange={(index) => setIsSheetOpen(index !== -1)}
         backdropComponent={(props) => (
           <BottomSheetBackdrop
             {...props}
-            disappearsOnIndex={-1}   // backdrop ẩn khi sheet đóng
-            appearsOnIndex={0}       // backdrop hiện khi sheet mở
-            pressBehavior="close"    // bấm vào nền sẽ close sheet
+            disappearsOnIndex={-1}
+            appearsOnIndex={0}
+            pressBehavior="close"
           />
         )}
       >
         <BottomSheetView style={{ flex: 1 }}>
-            {/* Header */}
-            <View style={styles.headerRow}>
-              <Button onPress={() => sheetRef.current?.close()} disabled={loading}>
-                HỦY
-              </Button>
-              <Text style={styles.title}>Chỉnh sửa thông tin</Text>
-              <Button onPress={onSave} disabled={loading}>
-                {loading ? <ActivityIndicator animating /> : "LƯU"}
-              </Button>
+          {/* Header */}
+          <View style={styles.headerRow}>
+            <Button onPress={() => sheetRef.current?.close()} disabled={loading} textColor={BLUE}>
+              HỦY
+            </Button>
+            <Text style={styles.title}>Chỉnh sửa thông tin</Text>
+            <Button onPress={onSave} disabled={loading} textColor={BLUE}>
+              {loading ? <ActivityIndicator animating /> : "LƯU"}
+            </Button>
+          </View>
+
+          {/* Form */}
+          <KeyboardAwareScrollView contentContainerStyle={styles.container} enableOnAndroid>
+            {/* Email & Username (chỉ đọc) */}
+            <TextInput
+              label="Email"
+              {...commonInputProps}
+              value={user.email}
+              disabled
+              selectionColor={BLUE}
+              outlineColor={BLUE_OUTLINE}
+              activeOutlineColor={BLUE}
+            />
+            <TextInput
+              label="Tên người dùng"
+              {...commonInputProps}
+              value={user.username}
+              disabled
+              selectionColor={BLUE}
+              outlineColor={BLUE_OUTLINE}
+              activeOutlineColor={BLUE}
+            />
+
+            {/* Họ & Tên */}
+            <View style={styles.row}>
+              <TextInput
+                label="Họ"
+                {...commonInputProps}
+                style={[styles.inputHalf, styles.inputHalfLeft]}
+                value={firstName}
+                onChangeText={setFirstName}
+                error={!!errFirst}
+                returnKeyType="next"
+                selectionColor={BLUE}
+                outlineColor={BLUE_OUTLINE}
+                activeOutlineColor={BLUE}
+              />
+              <TextInput
+                label="Tên"
+                {...commonInputProps}
+                style={[styles.inputHalf, styles.inputHalfRight]}
+                value={lastName}
+                onChangeText={setLastName}
+                error={!!errLast}
+                returnKeyType="done"
+                selectionColor={BLUE}
+                outlineColor={BLUE_OUTLINE}
+                activeOutlineColor={BLUE}
+              />
             </View>
+            {!!errFirst && <HelperText type="error">{errFirst}</HelperText>}
+            {!!errLast && <HelperText type="error">{errLast}</HelperText>}
 
-            {/* Form */}
-            <KeyboardAwareScrollView contentContainerStyle={styles.container} enableOnAndroid>
-              {/* Email & Username (chỉ đọc) */}
-              <TextInput
-                label="Email"
-                mode="outlined"
-                style={styles.input}
-                value={user.email}
-                disabled
+            {/* Giới tính */}
+            <Text style={styles.sectionLabel}>Giới tính</Text>
+            <SegmentedButtons
+              value={gender ? "male" : "female"}
+              onValueChange={(v: any) => setGender(v === "male")}
+              buttons={[
+                { value: "male", label: "Nam" },
+                { value: "female", label: "Nữ" },
+              ]}
+              style={styles.segment}
+            />
+
+            {/* Chia sẻ dữ liệu */}
+            <View style={styles.checkboxRow}>
+              <Checkbox
+                status={acceptSharing ? "checked" : "unchecked"}
+                onPress={() => setAcceptSharing((s) => !s)}
+                color={BLUE}
               />
-              <TextInput
-                label="Tên người dùng"
-                mode="outlined"
-                style={styles.input}
-                value={user.username}
-                disabled
-              />
-
-              {/* Họ & Tên */}
-              <View style={styles.row}>
-                <TextInput
-                  label="Họ"
-                  mode="outlined"
-                  style={[styles.inputHalf, { marginRight: 6 }]}
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  error={!!errFirst}
-                  returnKeyType="next"
-                />
-                <TextInput
-                  label="Tên"
-                  mode="outlined"
-                  style={[styles.inputHalf, { marginLeft: 6 }]}
-                  value={lastName}
-                  onChangeText={setLastName}
-                  error={!!errLast}
-                  returnKeyType="done"
-                />
-              </View>
-              {!!errFirst && <HelperText type="error">{errFirst}</HelperText>}
-              {!!errLast && <HelperText type="error">{errLast}</HelperText>}
-
-              {/* Giới tính */}
-              <Text style={styles.sectionLabel}>Giới tính</Text>
-              <SegmentedButtons
-                value={gender ? "male" : "female"}
-                onValueChange={(v: any) => setGender(v === "male")}
-                buttons={[
-                  { value: "male", label: "Nam" },
-                  { value: "female", label: "Nữ" },
-                ]}
-                style={styles.segment}
-              />
-
-              {/* Chia sẻ dữ liệu */}
-              <View style={styles.checkboxRow}>
-                <Checkbox
-                  status={acceptSharing ? "checked" : "unchecked"}
-                  onPress={() => setAcceptSharing((s) => !s)}
-                />
-                <Text style={styles.checkboxText}>Cho phép chia sẻ dữ liệu nhật ký cho hệ thống</Text>
-              </View>
-            </KeyboardAwareScrollView>
-
+              <Text style={styles.checkboxText}>
+                Cho phép chia sẻ dữ liệu nhật ký cho hệ thống
+              </Text>
+            </View>
+          </KeyboardAwareScrollView>
         </BottomSheetView>
       </BottomSheet>
     </Portal>
@@ -226,9 +244,8 @@ const styles = StyleSheet.create({
   sectionLabel: { marginTop: 8, marginBottom: 6, fontWeight: "600" },
   segment: { marginBottom: 8 },
   checkboxRow: { flexDirection: "row", alignItems: "center", marginTop: 8 },
-  checkboxText: { fontSize: 16, flexWrap:"wrap" },
-  inputHalf: {
-    flex: 1,
-    marginVertical: 3
-  },
+  checkboxText: { fontSize: 16, flexWrap: "wrap" },
+  inputHalf: { flex: 1, marginVertical: 3 },
+  inputHalfLeft: { marginRight: 6 },
+  inputHalfRight: { marginLeft: 6 },
 });

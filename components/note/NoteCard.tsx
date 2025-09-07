@@ -28,7 +28,15 @@ const NoteCard: FC<Props> = ({ note, navigation }) => {
         id: note.id
       })}
     >
-      <Card style={styles.card} mode="elevated">
+      <Card style={[
+        styles.card,
+        note.isCrisis && {
+          backgroundColor: "#fff0f0",   // nền đỏ rất nhạt
+          borderColor: "#fbcaca",       // viền đỏ nhạt
+          shadowColor: "#e02424",       // bóng đỏ nhẹ
+        },
+      ]}
+        mode="elevated">
         <Card.Content style={styles.content}>
           {/* Header line: date + mood badge */}
           <View style={styles.headRow}>
@@ -78,11 +86,6 @@ const NoteCard: FC<Props> = ({ note, navigation }) => {
             ) : (
               <Text style={styles.value}>—</Text>
             )}
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Điểm cảm xúc</Text>
-            <Text style={styles.value}>{note.sentimentScore ?? "Chưa tính"}</Text>
           </View>
         </Card.Content>
       </Card>

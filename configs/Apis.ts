@@ -22,10 +22,12 @@ export const endpoints = {
 
   users: "/users",
   profile: "/users/profile",
+  profileDeletion: "/users/profile/request-deletion",
 
   moodEntries: "/mood-entries",
   moodEntryDetail: (id: number) => `/mood-entries/${id}`, 
   feedbackMoodEntry: (id: number) => `/mood-entries/${id}/feedback`,
+  stats: `/users/profile/stats`,
 
   feedbacks: `/feedbacks`,
   feedback: (id: number) => `/feedbacks/${id}`,

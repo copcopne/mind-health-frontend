@@ -22,15 +22,14 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { api, endpoints } from "../../configs/Apis";
 import { useSnackbar } from "../../configs/Contexts";
 import { MOOD_OPTIONS } from "../../configs/Moods";
+import WarningDialog from "../common/WarningDialog";
 
-/** ====== Mood options (khớp backend) ====== */
 type Mood = "VERY_BAD" | "BAD" | "NORMAL" | "GOOD" | "EXCELLENT";
 
 export type CreateNoteSheetRef = {
   open: () => void;
   close: () => void;
   openWithMood?: (m: Mood) => void;
-  /** Mở sheet ở chế độ EDIT, tự fill dữ liệu */
   openForEdit: (note: { id: number; content: string; mood_level: Mood }) => void;
 };
 
@@ -46,6 +45,7 @@ const CreateNoteSheet = forwardRef<CreateNoteSheetRef, Props>(function CreateNot
   const { showSnackbar } = useSnackbar();
 
   const sheetRef = useRef<BottomSheet>(null);
+  const warnRef = useRef(null);
   const snapPoints = useMemo(() => ["80%"], []);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
@@ -127,19 +127,21 @@ const CreateNoteSheet = forwardRef<CreateNoteSheetRef, Props>(function CreateNot
 
     try {
       setLoading(true);
-
+      let res;
       if (editingId == null) {
         // CREATE
-        await api.post(endpoints.moodEntries, payload);
+        res = await api.post(endpoints.moodEntries, payload);
         showSnackbar("Đã lưu nhật ký 🎉");
         onCreated?.();
       } else {
-        await api.patch?.(endpoints.moodEntryDetail(editingId), payload);
+        res = await api.patch?.(endpoints.moodEntryDetail(editingId), payload);
         showSnackbar("Đã cập nhật nhật ký ✨");
         onUpdated?.();
       }
-
       sheetRef.current?.close();
+      if (res.data.is_crisis === true) {
+        warnRef?.current?.open();
+      }
       resetForm();
     } catch (e: any) {
       console.error("Lưu nhật ký lỗi:", e?.response ?? e);
@@ -229,7 +231,10 @@ const CreateNoteSheet = forwardRef<CreateNoteSheetRef, Props>(function CreateNot
             )}
 
             {/* Content */}
+            <View style={{ flexDirection:"row", alignItems:"center" }}>
             <Text style={styles.sectionLabel}>Tâm sự của bạn</Text>
+            <Text style={styles.required}> *</Text>
+            </View>
             <TextInput
               mode="outlined"
               placeholder="Hôm nay mình cảm thấy..."
@@ -257,6 +262,9 @@ const CreateNoteSheet = forwardRef<CreateNoteSheetRef, Props>(function CreateNot
           </KeyboardAwareScrollView>
         </BottomSheetView>
       </BottomSheet>
+      <WarningDialog
+        ref={warnRef}
+      />
     </Portal>
   );
 });

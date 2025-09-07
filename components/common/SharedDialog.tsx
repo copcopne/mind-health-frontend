@@ -1,5 +1,5 @@
 import React, { forwardRef, useImperativeHandle, useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { Portal, Dialog, Button, Text } from "react-native-paper";
 
 export type SharedDialogRef = {
@@ -45,7 +45,7 @@ const SharedDialog = forwardRef<SharedDialogRef>((_, ref) => {
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={handleCancel}>
+      <Dialog visible={visible} onDismiss={handleCancel} style={styles.dialog}>
         {options.title && <Dialog.Title>{options.title}</Dialog.Title>}
         {options.message && (
           <Dialog.Content>
@@ -68,6 +68,10 @@ const SharedDialog = forwardRef<SharedDialogRef>((_, ref) => {
 export default SharedDialog;
 
 const styles = StyleSheet.create({
+  dialog: {
+    backgroundColor: "#e6f0ff",
+    borderRadius: 12,
+  },
   actions: {
     justifyContent: "flex-end",
   },

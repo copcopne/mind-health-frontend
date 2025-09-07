@@ -1,4 +1,4 @@
-import React, { FC, useContext, useState } from "react";
+import React, { FC, useContext, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -13,20 +13,21 @@ import {
   useTheme,
 } from "react-native-paper";
 import { UserDispatch } from "../../configs/Contexts";
-import { api, endpoints, logout } from "../../configs/Apis";
+import { logout } from "../../configs/Apis";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { SettingsParamList } from "../../App";
 import TopBar from "../common/TopBar";
+import DeletionRequestSheet from "./DeletionRequestSheet";
 
 type Props = NativeStackScreenProps<SettingsParamList, "settingsStack">;
 const Settings: FC<Props> = ({ navigation }) => {
   const theme = useTheme();
+  const deleteRef = useRef(null);
   const userDispatch = useContext(UserDispatch)!;
 
-  // dialogs
-  const [cpVisible, setCpVisible] = useState(false);
-  const [delVisible, setDelVisible] = useState(false);
-  const [logoutVisible, setLogoutVisible] = useState(false);
+  const handleOpenDeletion = () => {
+    deleteRef?.current?.open();
+  };
 
   const doLogout = async () => {
     await logout();
@@ -57,7 +58,7 @@ const Settings: FC<Props> = ({ navigation }) => {
               title="Yêu cầu xoá tài khoản"
               titleStyle={{ color: "#e74c3c" }}
               left={(p) => <List.Icon {...p} icon="alert-circle-outline" color="#e74c3c" />}
-              onPress={() => setDelVisible(true)}
+              onPress={() => handleOpenDeletion()}
             />
 
             <Divider style={styles.divider} />
@@ -76,54 +77,12 @@ const Settings: FC<Props> = ({ navigation }) => {
             </Text>
           </View>
         </View>
+
+        <DeletionRequestSheet
+          ref={deleteRef}
+          onSubmitted={doLogout}
+        />
       </SafeAreaView>
-
-      {/* ===== Dialog: Request Account Deletion ===== */}
-      {/* <Portal>
-        <Dialog visible={delVisible} onDismiss={() => setDelVisible(false)}>
-          <Dialog.Icon icon="alert" />
-          <Dialog.Title>Xoá tài khoản?</Dialog.Title>
-          <Dialog.Content>
-            <Text style={{ marginBottom: 8 }}>
-              Hành động này có thể không thể khôi phục. Em có thể nêu lý do (không bắt buộc):
-            </Text>
-            <TextInput
-              label="Lý do (tuỳ chọn)"
-              value={delReason}
-              onChangeText={setDelReason}
-              multiline
-              style={styles.input}
-            />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setDelVisible(false)}>Để sau</Button>
-            <Button
-              mode="contained"
-              buttonColor="#e74c3c"
-              textColor="white"
-              loading={delLoading}
-              disabled={delLoading}
-              onPress={doRequestDelete}
-            >
-              Gửi yêu cầu xoá
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal> */}
-
-      {/* ===== Dialog: Logout confirm ===== */}
-      {/* <Portal>
-        <Dialog visible={logoutVisible} onDismiss={() => setLogoutVisible(false)}>
-          <Dialog.Title>Đăng xuất</Dialog.Title>
-          <Dialog.Content>
-            <Text>Em chắc chắn muốn đăng xuất chứ?</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setLogoutVisible(false)}>Huỷ</Button>
-            <Button mode="contained" onPress={doLogout}>Đăng xuất</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal> */}
     </>
   );
 };

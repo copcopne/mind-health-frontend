@@ -59,16 +59,21 @@ const NoteDetails: FC = () => {
     }
   }, [data?.createdAt]);
 
-  // ⬇️ lấy mood theo cấu hình chung
   const moodCode = useMemo(
     () => normalizeMood(data?.moodLevel ?? null),
     [data?.moodLevel]
   );
   const moodMeta = moodCode ? moodMetaByCode[moodCode] : null;
 
-  const otherTopics = data?.otherTopics ?? [];
   const content = (data?.content ?? "").trim();
   const hasContent = content.length > 0;
+
+  const negScoreRounded = useMemo(() => {
+    const v = data?.sentimentScore;
+    if (v === null || v === undefined) return null;
+    // Làm tròn 2 chữ số thập phân
+    return Math.round(v * 100) / 100;
+  }, [data?.sentimentScore]);
 
   const loadData = async () => {
     try {
@@ -98,7 +103,7 @@ const NoteDetails: FC = () => {
       message: "Bạn có chắc chắn muốn xoá nhật ký này không?\nCác dữ liệu liên quan cũng sẽ bị xóa theo.",
       cancelText: "HỦY",
       confirmText: "XOÁ",
-      onConfirm: () => console.log("Đã xoá ✅"),
+      onConfirm: onDelete
     });
   };
 
@@ -157,7 +162,7 @@ const NoteDetails: FC = () => {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: headerH }]} // chừa TopBar tuyệt đối
+        contentContainerStyle={[styles.scrollContent, { paddingTop: headerH }]}
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never"
         refreshControl={
@@ -187,7 +192,7 @@ const NoteDetails: FC = () => {
                 }
                 <IconButton
                   icon="delete-outline"
-                  onPress={onDelete}
+                  onPress={showDeleteConfirm}
                   accessibilityLabel="Xoá"
                   style={styles.actionBtn}
                 />
@@ -249,6 +254,25 @@ const NoteDetails: FC = () => {
               </View>
             </TouchableWithoutFeedback>
 
+            {/* ===== CRISIS SUPPORT ===== */}
+            {data?.isCrisis === true && (
+              <View style={styles.crisisBox}>
+                <PText style={styles.crisisTitle}>🧡 Bạn không đơn độc</PText>
+                <PText style={styles.crisisLine}>
+                  • Hít vào 4s – giữ 4s – thở ra 6s trong 1–2 phút.
+                </PText>
+                <PText style={styles.crisisLine}>
+                  • Viết nhanh 3 điều đang khiến bạn quá tải và 1 việc nhỏ bạn có thể làm ngay.
+                </PText>
+                <PText style={styles.crisisLine}>
+                  • Liên hệ một người bạn/người thân để nói chuyện vài phút.
+                </PText>
+                <PText style={styles.crisisNote}>
+                  Nếu bạn thấy nguy hiểm ngay lập tức, hãy tìm sự trợ giúp gần nhất hoặc gọi cấp cứu địa phương.
+                </PText>
+              </View>
+            )}
+
             {/* ===== INSIGHT BOX ===== */}
             <View style={styles.insightBox}>
               <View style={styles.insightHeader}>
@@ -297,8 +321,15 @@ const NoteDetails: FC = () => {
 
               {/* SENTIMENT + ASK + BUTTON */}
               <View style={styles.insightSection}>
-                <PText style={styles.sectionLabel}>Điểm cảm xúc</PText>
-                <PText style={styles.value}>{data?.sentimentScore ?? "Chưa tính"}</PText>
+                <PText style={styles.sectionLabel}>Điểm tiêu cực cảm xúc</PText>
+                {negScoreRounded !== null ? (
+                  <View style={styles.inlineRow}>
+                    <PText style={styles.value}>{negScoreRounded.toFixed(2)}</PText>
+                    <PText style={styles.hintText}> (1 là cực kỳ tiêu cực)</PText>
+                  </View>
+                ) : (
+                  <PText style={styles.value}>Chưa tính</PText>
+                )}
 
                 <View style={styles.askRow}>
                   <PText style={styles.askText} numberOfLines={2}>
@@ -327,7 +358,6 @@ const NoteDetails: FC = () => {
       <CreateNoteSheet
         ref={createRef}
         onUpdated={() => {
-          // tạo xong thì load lại chi tiết
           loadData();
         }}
       />
@@ -338,9 +368,16 @@ const NoteDetails: FC = () => {
 };
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#f6f8fb" },
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16 }, // paddingTop set động theo headerH
+  safe: {
+    flex: 1,
+    backgroundColor: "#f6f8fb"
+  },
+  scroll: {
+    flex: 1
+  },
+  scrollContent: {
+    paddingHorizontal: 16
+  },
   card: {
     borderRadius: 16,
     overflow: "hidden",
@@ -355,8 +392,8 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
 
-  actions: { 
-    flexDirection: "row", 
+  actions: {
+    flexDirection: "row",
     alignItems: "center",
     marginRight: 6,
   },
@@ -447,9 +484,41 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 8,
+  }, crisisBox: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(220,38,38,0.06)", // đỏ rất nhạt
+    borderWidth: 1,
+    borderColor: "rgba(220,38,38,0.20)",
   },
-
+  crisisTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#7f1d1d",
+    marginBottom: 6,
+  },
+  crisisLine: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: "#7a1a1a",
+  },
+  crisisNote: {
+    marginTop: 8,
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#6b0f0f",
+  },
   askText: { flex: 1, fontSize: 13, color: "#405166" },
+  inlineRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 6,
+  },
+  hintText: {
+    fontSize: 12,
+    color: "#6b7a90",
+  },
 });
 
 export default memo(NoteDetails);

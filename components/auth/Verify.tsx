@@ -29,7 +29,6 @@ const Verify: FC<Props> = ({ navigation, route }) => {
     const [err, setErr] = useState<string | null>(null);
     const [remain, setRemain] = useState(0);
     const [sentOnce, setSentOnce] = useState(false);
-    const [isFromRegister, setIsFromRegister] = useState(false);
 
     const prevRouteName = useNavigationState((state) => {
         const routes = state.routes;
@@ -42,7 +41,6 @@ const Verify: FC<Props> = ({ navigation, route }) => {
 
     useEffect(() => {
         if (prevRouteName === "register") {
-            setIsFromRegister(true);
             setSentOnce(true);
             setRemain(RESEND_SECONDS);
         }

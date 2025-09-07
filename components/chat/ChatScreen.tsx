@@ -29,6 +29,7 @@ import * as Clipboard from "expo-clipboard";
 import { ApiPage } from "../../configs/Types";
 import TopBar from "../common/TopBar";
 import FeedbackSheet, { FeedbackSheetRef } from "../FeedbackSheet";
+import WarningDialog from "../common/WarningDialog";
 
 type Role = "user" | "assistant";
 type MsgStatus = "sending" | "failed" | "sent";
@@ -58,7 +59,8 @@ const ChatScreen: FC = () => {
     const MIN_INPUT_H = 40;
     const MAX_INPUT_H = 120;
 
-    const feedbackRef = useRef<FeedbackSheetRef>(null);
+    const feedbackRef = useRef(null);
+    const warnRef = useRef(null);
 
     const openFeedbackForMsg = (item: any) => {
         if (item.canFeedback == false)
@@ -187,68 +189,33 @@ const ChatScreen: FC = () => {
 
     const sendToApi = async (tempUserMsg: ChatMsg) => {
         try {
-            // Gửi nội dung lên server
-            const res = await api.post(endpoints.messages, { content: tempUserMsg.content });
+            const { data } = await api.post(endpoints.messages, { content: tempUserMsg.content });
 
-            // ==== Chuẩn hoá mọi trường theo backend ====
-            // Chấp nhận nhiều dạng payload: {messages: ApiMessage[]} | {user_message, bot_message} | ApiMessage (1 bản ghi)
-            const payload = res?.data;
+            // Đánh dấu tin nhắn tạm của user là "sent"
+            markMsg(tempUserMsg.id, { status: "sent" as MsgStatus });
 
-            let apiMsgs: ApiMessage[] = [];
-            if (Array.isArray(payload?.messages)) {
-                apiMsgs = payload.messages as ApiMessage[];
-            } else if (payload?.user_message || payload?.bot_message) {
-                if (payload.user_message) apiMsgs.push(payload.user_message as ApiMessage);
-                if (payload.bot_message) apiMsgs.push(payload.bot_message as ApiMessage);
-            } else if (payload && typeof payload === "object") {
-                // Trường hợp backend trả về 1 message (thường là bot)
-                // Heuristic: nếu có 'sender' và 'created_at' coi như ApiMessage
-                if (payload.sender && payload.created_at) {
-                    apiMsgs = [payload as ApiMessage];
+            let botApiMsg: ApiMessage | undefined;
+
+            if (data && typeof data === "object" && data.sender === "BOT") {
+                botApiMsg = data as ApiMessage;
+            }
+
+            if (botApiMsg) {
+                const botChat = mapApiToChat(botApiMsg);
+                if (botChat.crisis === true) {
+                    warnRef?.current?.open();
                 }
-            }
-
-            if (apiMsgs.length === 0) {
-                // Không rõ định dạng — fallback: đánh dấu sent rồi reload trang hiện tại
-                markMsg(tempUserMsg.id, { status: "sent" });
-                await loadPage(0, false);
-                return;
-            }
-
-            // Map sang ChatMsg (đúng mọi field: id, role, createdAt, crisis, canFeedback)
-            const mapped = apiMsgs.map(mapApiToChat);
-
-            // Tìm bản ghi user thực sự do server trả (sender === "USER")
-            const serverUser = mapped.find(m => m.role === "user");
-            // Các bản ghi còn lại (của chatbot)
-            const others = mapped.filter(m => m.role !== "user");
-
-            setMessages(prev => {
-                // 1) Thay temp user message bằng server user message (nếu có).
-                let next = prev.map(m => {
-                    if (m.id === tempUserMsg.id) {
-                        if (serverUser) return serverUser;               // thay hoàn toàn bằng bản ghi server
-                        return { ...m, status: "sent" as MsgStatus };    // nếu server không trả user msg, tối thiểu set "sent"
-                    }
-                    return m;
-                });
-
-                // Thêm các message khác từ server .Vì list đang inverted (mới nhất ở trên),
-                //    ta chèn chúng lên đầu theo đúng thứ tự chúng xuất hiện (đảo mảng để message cuối cùng nằm trên cùng nếu cần).
-                //    Thường backend đã theo thứ tự thời gian, ta đảo để phần tử sau cùng lên trước.
-                const toPrepend = [...others].reverse().filter(m =>
-                    // tránh trùng id nếu đã có (phòng trường hợp reload / double insert)
-                    !next.some(x => x.id === m.id)
+                setMessages(prev =>
+                    prev.some(m => m.id === botChat.id) ? prev : [botChat, ...prev]
                 );
 
-                return toPrepend.length ? [...toPrepend, ...next] : next;
-            });
+            }
         } catch (e) {
-            // Gửi thất bại -> để user có thể retry
-            markMsg(tempUserMsg.id, { status: "failed" });
+            markMsg(tempUserMsg.id, { status: "failed" as MsgStatus });
             showSnackbar?.("Gửi tin nhắn thất bại. Thử lại nha!");
         }
     };
+
 
     const onSend = async (raw?: string) => {
         const content = (raw ?? text).trim();
@@ -357,12 +324,6 @@ const ChatScreen: FC = () => {
                             >
                                 {item.content}
                             </Markdown>
-
-                            {item.crisis && item.role === "assistant" && (
-                                <View style={{ marginTop: 6, alignSelf: "flex-start" }}>
-                                    <Badge style={{ backgroundColor: "#dc2626" }}>Cảnh báo</Badge>
-                                </View>
-                            )}
                         </View>
                     </Pressable>
 
@@ -441,7 +402,6 @@ const ChatScreen: FC = () => {
     const EmptyState = () => initialLoading ? (
         <View style={{ alignItems: "center", paddingVertical: 24 }}>
             <ActivityIndicator />
-            <Text style={{ marginTop: 8, color: "#6b7280" }}>Đang tải hội thoại…</Text>
         </View>
     ) : (
         <View style={{ alignItems: "center", paddingVertical: 64 }}>
@@ -545,6 +505,9 @@ const ChatScreen: FC = () => {
                 onSubmitted={() => {
                     loadPage(0, false);
                 }}
+            />
+            <WarningDialog
+                ref={warnRef}
             />
         </SafeAreaView>
     );

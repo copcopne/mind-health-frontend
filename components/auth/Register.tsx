@@ -14,8 +14,6 @@ import {
     HelperText,
     RadioButton,
     ProgressBar,
-    Portal,
-    Dialog,
     Checkbox
 } from "react-native-paper";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -26,6 +24,7 @@ import TopBar from "../common/TopBar";
 import { useSnackbar } from "../../configs/Contexts";
 import axios from "axios";
 import { SafeAreaView } from "react-native-safe-area-context";
+import SharedDialog from "../common/SharedDialog";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "register">;
 type Step = 0 | 1 | 2 | 3 | 4;
@@ -52,8 +51,7 @@ const Register: FC<Props> = ({ navigation }) => {
 
     // error
     const [err, setErr] = useState<Record<string, string | null>>({});
-    const [message, setMessage] = useState<string>("");
-    const [showDialog, setShowDialog] = useState<boolean>(false);
+    const dialogRef = useRef(null);
 
     const progress = useMemo(() => (step + 1) / TOTAL_STEPS.length, [step]);
 
@@ -193,6 +191,15 @@ const Register: FC<Props> = ({ navigation }) => {
         else navigation.goBack();
     };
 
+    const showErrorDialog = (msg: string) => {
+        dialogRef?.current?.open({
+            title: "Lỗi đăng ký",
+            message: msg,
+            confirmText: "OK",
+            cancelText: "Hủy",
+        });
+    };
+
     const onSubmit = async () => {
         if (!validateStep(4)) return;
         try {
@@ -210,14 +217,13 @@ const Register: FC<Props> = ({ navigation }) => {
         } catch (err: any) {
             let msg = "Hệ thống đang có lỗi, thử lại sau nhé!";
             if (axios.isAxiosError(err) && err.status === 400) {
-                setMessage(err.response?.data?.message);
+                msg = err.response?.data?.message;
             } else {
-                setMessage(msg);
                 console.error(err);
-                console.error(err.status);
-                console.error(err.response?.data);
+                console.error(err?.status);
+                console.error(err?.response?.data);
             }
-            setShowDialog(true);
+            showErrorDialog(msg);
 
         } finally {
             setLoading(false);
@@ -433,17 +439,7 @@ const Register: FC<Props> = ({ navigation }) => {
                 </Animated.View>
             </View>
 
-            <Portal>
-                <Dialog visible={showDialog} onDismiss={() => setShowDialog(false)}>
-                    <Dialog.Title>Lỗi đăng nhập</Dialog.Title>
-                    <Dialog.Content>
-                        <Text variant="bodyMedium">{message}</Text>
-                    </Dialog.Content>
-                    <Dialog.Actions>
-                        <Button onPress={() => setShowDialog(false)}>OK</Button>
-                    </Dialog.Actions>
-                </Dialog>
-            </Portal>
+            <SharedDialog ref={dialogRef} />
 
         </SafeAreaView>
     );
@@ -510,7 +506,7 @@ const styles = StyleSheet.create({
         paddingBottom: 16,
         marginBottom: 16,
         paddingTop: 8,
-    
+
     },
     footerBtn: { borderRadius: 14 },
 });

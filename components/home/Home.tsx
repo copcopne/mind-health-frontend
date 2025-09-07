@@ -1,10 +1,9 @@
 import { FC } from "react";
 import { StyleSheet, View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Text, Card, Button } from "react-native-paper";
+import { Text, Button } from "react-native-paper";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { MainTabParamList } from "../../App";
-import TopBar from "../common/TopBar";
 
 type Props = NativeStackScreenProps<MainTabParamList, "home">;
 
@@ -17,18 +16,6 @@ const Home: FC<Props> = ({ navigation }) => {
           <Text style={styles.title}>Xin chào 👋</Text>
           <Text style={styles.subtitle}>Chào mừng đến với MindHealth</Text>
         </View>
-
-        {/* Quick stats */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text style={styles.sectionTitle}>Tổng quan hôm nay</Text>
-            <View style={styles.placeholder}>
-              <Text style={{ color: "#6b7280" }}>
-                Biểu đồ cảm xúc sẽ hiển thị ở đây
-              </Text>
-            </View>
-          </Card.Content>
-        </Card>
 
         {/* Actions */}
         <Text style={styles.sectionTitle}>Khám phá</Text>

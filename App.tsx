@@ -168,15 +168,33 @@ const MainTabs = () => {
   );
 };
 export default () => {
+  const BLUE = "#1c85fc";
+  const BLUE_OUTLINE = "#cfe3ff";
+  const BLUE_CONTAINER = "#e6f0ff";
+
   const theme = {
-    ...MD3LightTheme,
-    colors: {
-      ...MD3LightTheme.colors,
-      primary: '#1c85fc', // màu nút, highlight
-      surface: '#b3c0dfff', // nền dialog
-      onSurface: '#333333', // màu chữ
-    },
-  };
+  ...MD3LightTheme,
+  colors: {
+    ...MD3LightTheme.colors,
+    // ==== Chủ đạo xanh ====
+    primary: BLUE,
+    secondary: BLUE,          // một số control fallback vào đây
+    tertiary: BLUE,           // phòng hờ
+    
+    // ==== TextInput MD3 ====
+    outline: BLUE_OUTLINE,    // viền khi chưa focus
+    onSurfaceVariant: "#4a607a", // label/placeholder/viền mờ
+
+    // ==== SegmentedButtons MD3 ====
+    secondaryContainer: BLUE_CONTAINER, // nền khi chọn
+    onSecondaryContainer: "#0b203a",    // chữ khi chọn
+
+    // ==== Dialog/Card surface xanh nhạt ====
+    surface: BLUE_CONTAINER,
+    surfaceContainer: BLUE_CONTAINER,
+    surfaceContainerHigh: BLUE_CONTAINER,
+  },
+};
 
   const [user, dispatch] = useReducer(userReducer, null);
   const [loading, setLoading] = useState(false);

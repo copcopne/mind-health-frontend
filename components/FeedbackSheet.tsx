@@ -14,6 +14,7 @@ import { StyleSheet, View } from "react-native";
 import { useSnackbar } from "../configs/Contexts";
 import { api, endpoints } from "../configs/Apis";
 import { TargetType } from "../configs/Types";
+import SharedDialog from "./common/SharedDialog";
 
 const SATISFY_OPTIONS = [
   { value: "VERY_BAD", label: "Rất tệ" },
@@ -40,12 +41,14 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef, Props>(function FeedbackSheet
   ref
 ) {
   const sheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ["60%"], []);
+  const snapPoints = useMemo(() => ["80%"], []);
   const { showSnackbar } = useSnackbar();
 
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState("");
   const [satisfy, setSatisfy] = useState<string | null>(null);
+
+  const dialogRef = useRef(null);
 
   const [feedbackId, setFeedbackId] = useState<number>(-1);
   const [targetId, setTargetId] = useState<number | null>(null);
@@ -124,6 +127,16 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef, Props>(function FeedbackSheet
     }
   };
 
+  const showDeleteConfirm = () => {
+    dialogRef.current?.open({
+      title: "Xác nhận xoá",
+      message: "Bạn có chắc chắn muốn xoá phản hồi này không?",
+      cancelText: "HỦY",
+      confirmText: "XOÁ",
+      onConfirm: deleteFeedback
+    });
+  };
+
   /** Cập nhật phản hồi hiện có */
   const updateFeedback = async () => {
     if (feedbackId > 0) {
@@ -140,6 +153,8 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef, Props>(function FeedbackSheet
     if (feedbackId > 0) {
       await api.delete(endpoints.feedback(feedbackId));
       onSubmitted?.();
+      sheetRef.current.close();
+      showSnackbar("Xóa phản hồi thành công", "success");
     }
   };
 
@@ -284,7 +299,7 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef, Props>(function FeedbackSheet
             {existing && (
               <Button
                 mode="text"
-                onPress={onDelete}
+                onPress={showDeleteConfirm}
                 disabled={loading}
                 style={styles.deleteBtn}
                 textColor="#e74c3c"
@@ -295,6 +310,9 @@ const FeedbackSheet = forwardRef<FeedbackSheetRef, Props>(function FeedbackSheet
           </KeyboardAwareScrollView>
         </BottomSheetView>
       </BottomSheet>
+      <SharedDialog
+        ref={dialogRef}
+      />
     </Portal>
   );
 });

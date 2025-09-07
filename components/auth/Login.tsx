@@ -1,11 +1,11 @@
-import { FC, useContext, useState } from "react";
+import { FC, useContext, useRef, useState } from "react";
 import {
     View,
     StyleSheet,
     TouchableWithoutFeedback,
     Keyboard,
 } from "react-native";
-import { Button, Text, TextInput, HelperText, Portal, Dialog } from "react-native-paper";
+import { Button, Text, TextInput, HelperText } from "react-native-paper";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../../App";
 import { api, endpoints, setTokens } from "../../configs/Apis";
@@ -14,6 +14,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import TopBar from "../common/TopBar";
 import axios from "axios";
 import { SafeAreaView } from "react-native-safe-area-context";
+import SharedDialog from "../common/SharedDialog";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "login">;
 
@@ -24,8 +25,8 @@ const Login: FC<Props> = ({ navigation }) => {
     const [loading, setLoading] = useState<boolean>(false);
     const [errId, setErrId] = useState<string | null>(null);
     const [errPwd, setErrPwd] = useState<string | null>(null);
-    const [errGeneral, setErrGeneral] = useState<string | null>(null);
-    const [showDialog, setShowDialog] = useState<boolean | false>(false);
+
+    const dialogRef = useRef(null);
 
     const userDispatch = useContext(UserDispatch)!;
 
@@ -44,6 +45,15 @@ const Login: FC<Props> = ({ navigation }) => {
         };
 
         return ok;
+    };
+
+    const showErrorDialog = (msg: String) => {
+        dialogRef?.current?.open({
+            title: "Lỗi đăng nhập",
+            message: msg,
+            confirmText: "OK",
+            cancelText: "Hủy",
+        });
     };
 
     const onLogin = async () => {
@@ -79,15 +89,14 @@ const Login: FC<Props> = ({ navigation }) => {
 
         } catch (err: any) {
             let msg = "Hệ thống đang có lỗi, thử lại sau nhé!";
-            if (axios.isAxiosError(err) && err.status === 400) {
+            if (axios.isAxiosError(err) && err.status === 401) {
                 msg = err.response?.data?.message;
             } else {
                 console.error(err);
                 console.error(err.response?.status);
                 console.error(err.response?.data);
             }
-            setErrGeneral(msg);
-            setShowDialog(true);
+            showErrorDialog(msg);
 
         } finally {
             setLoading(false);
@@ -185,17 +194,7 @@ const Login: FC<Props> = ({ navigation }) => {
                 </TouchableWithoutFeedback>
             </KeyboardAwareScrollView>
 
-            <Portal>
-                <Dialog visible={showDialog} onDismiss={() => setShowDialog(false)}>
-                    <Dialog.Title>Lỗi đăng nhập</Dialog.Title>
-                    <Dialog.Content>
-                        <Text variant="bodyMedium">{errGeneral}</Text>
-                    </Dialog.Content>
-                    <Dialog.Actions>
-                        <Button onPress={() => setShowDialog(false)}>OK</Button>
-                    </Dialog.Actions>
-                </Dialog>
-            </Portal>
+            <SharedDialog ref={dialogRef} />
 
         </SafeAreaView>
     );
