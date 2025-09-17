@@ -45,7 +45,7 @@ const Profile: FC<Props> = ({ navigation }) => {
     loadMoodEntries();
   }, []);
 
-  /** ===== Stats (7 ngày gần đây) ===== */
+  /** ===== Stats (30 ngày gần đây) ===== */
   const [stats, setStats] = useState<StatsValuesResponseDTO[] | null>(null);
   const [loadingStats, setLoadingStats] = useState<boolean>(false);
 
@@ -53,7 +53,7 @@ const Profile: FC<Props> = ({ navigation }) => {
   const toStr = (d: Date) => d.toISOString().slice(0, 10);
   const fromDate = useMemo(() => {
     const d = new Date(today);
-    d.setDate(d.getDate() - 6);
+    d.setDate(d.getDate() - 29);
     return d;
   }, [today]);
 
@@ -127,7 +127,7 @@ const Profile: FC<Props> = ({ navigation }) => {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Thống kê cảm xúc</Text>
               <Chip compact mode="flat" style={styles.rangeChip}>
-                7 ngày gần đây
+                30 ngày gần đây
               </Chip>
             </View>
 

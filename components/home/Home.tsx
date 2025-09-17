@@ -23,13 +23,7 @@ const Home: FC<Props> = ({ navigation }) => {
           <Button
             mode="contained"
             style={styles.actionBtn}
-            onPress={() => {}}
-          >
-            Nhật ký
-          </Button>
-          <Button
-            mode="contained"
-            style={styles.actionBtn}
+            labelStyle={styles.btnLabel}
             onPress={() => navigation.navigate("chat")}
           >
             Trò chuyện
@@ -37,6 +31,7 @@ const Home: FC<Props> = ({ navigation }) => {
           <Button
             mode="contained"
             style={styles.actionBtn}
+            labelStyle={styles.btnLabel}
             onPress={() => navigation.navigate("profile")}
           >
             Hồ sơ
@@ -99,6 +94,11 @@ const styles = StyleSheet.create({
   actionBtn: {
     flex: 1,
     borderRadius: 12,
+  },
+  btnLabel: {
+    flexWrap: "wrap",
+    textAlign: "center",
+    fontSize: 16,
   },
 });
 

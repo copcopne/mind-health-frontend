@@ -194,11 +194,7 @@ const ChatScreen: FC = () => {
             // Đánh dấu tin nhắn tạm của user là "sent"
             markMsg(tempUserMsg.id, { status: "sent" as MsgStatus });
 
-            let botApiMsg: ApiMessage | undefined;
-
-            if (data && typeof data === "object" && data.sender === "BOT") {
-                botApiMsg = data as ApiMessage;
-            }
+            let botApiMsg = data as ApiMessage;
 
             if (botApiMsg) {
                 const botChat = mapApiToChat(botApiMsg);

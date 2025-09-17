@@ -6,17 +6,19 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
-import { Button, Text, TextInput, HelperText, Portal, Dialog } from "react-native-paper";
+import { Button, Text, TextInput, HelperText } from "react-native-paper";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../../App";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import TopBar from "../common/TopBar";
 import { api, endpoints } from "../../configs/Apis";
 import axios from "axios";
+import SharedDialog, { SharedDialogRef } from "../common/SharedDialog";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "forgot">;
 
 const RESEND_SECONDS = 60;
+const INPUT_HEIGHT = 56;
 
 const ForgotPassword: FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -26,38 +28,39 @@ const ForgotPassword: FC<Props> = ({ navigation }) => {
   const [showPwd, setShowPwd] = useState(false);
   const [showPwd2, setShowPwd2] = useState(false);
 
-  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Lỗi từng field
   const [errEmail, setErrEmail] = useState<string | null>(null);
   const [errOtp, setErrOtp] = useState<string | null>(null);
   const [errNewPwd, setErrNewPwd] = useState<string | null>(null);
   const [errConfirmPwd, setErrConfirmPwd] = useState<string | null>(null);
 
-  // Dialog lỗi chung
-  const [errGeneral, setErrGeneral] = useState<string | null>(null);
-  const [showDialog, setShowDialog] = useState(false);
-
-  // Resend cooldown
   const [remain, setRemain] = useState(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const dialogRef = useRef<SharedDialogRef>(null);
+
+  // Khi chạm 0 thì dừng interval (không cleanup trên mọi render)
   useEffect(() => {
     if (remain <= 0 && timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
+      setRemain(0);
     }
+  }, [remain]);
+
+  // Cleanup khi unmount
+  useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [remain]);
+  }, []);
 
   const startCountdown = () => {
     setRemain(RESEND_SECONDS);
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
-      setRemain((s) => s - 1);
+      setRemain((s) => (s > 0 ? s - 1 : 0));
     }, 1000);
   };
 
@@ -67,7 +70,6 @@ const ForgotPassword: FC<Props> = ({ navigation }) => {
       setErrEmail("Vui lòng nhập email.");
       return false;
     }
-    // Check đơn giản
     const ok = /\S+@\S+\.\S+/.test(email);
     if (!ok) {
       setErrEmail("Email không hợp lệ.");
@@ -99,88 +101,85 @@ const ForgotPassword: FC<Props> = ({ navigation }) => {
     return true;
   };
 
+  // ===== actions
   const handleSendOtp = async () => {
-    if (!validateEmail()) return;
-    try {
-      setLoading(true);
-      await api.post(endpoints.forgotPassword, { email });
-      setOtpSent(true);
-      startCountdown();
-    } catch (err: any) {
-      let msg = "Hệ thống đang lỗi, thử lại sau nha.";
-      if (axios.isAxiosError(err)) {
-        const code = err.response?.status;
-        msg = err.response?.data?.message || (code === 404 ? "Email không tồn tại." : msg);
-      } else {
-        console.error(err);
-      }
-      setErrGeneral(msg);
-      setShowDialog(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
     if (remain > 0) return;
     if (!validateEmail()) return;
+
     try {
       setLoading(true);
       await api.post(endpoints.forgotPassword, { email });
+
+      dialogRef.current?.open({
+        title: "Đã gửi yêu cầu OTP",
+        message: "Nếu email hợp lệ, mã OTP sẽ được gửi trong ít phút. Vui lòng kiểm tra hộp thư của bạn.",
+        confirmText: "OK",
+      });
+
       startCountdown();
     } catch (err: any) {
-      let msg = "Không gửi lại được OTP. Thử sau 1 lát nhé.";
       if (axios.isAxiosError(err)) {
-        msg = err.response?.data?.message || msg;
+        if (err.response?.status === 404) {
+          dialogRef.current?.open({
+            title: "Đã gửi yêu cầu OTP",
+            message: "Nếu email hợp lệ, mã OTP sẽ được gửi trong ít phút. Vui lòng kiểm tra hộp thư của bạn.",
+            confirmText: "OK",
+          });
+          startCountdown();
+        } else {
+          dialogRef.current?.open({
+            title: "Không thể gửi OTP",
+            message: err.response?.data?.message || "Hệ thống đang bận, vui lòng thử lại sau.",
+            confirmText: "Đóng",
+          });
+        }
       } else {
         console.error(err);
+        dialogRef.current?.open({
+          title: "Không thể gửi OTP",
+          message: "Đã có lỗi không xác định. Vui lòng thử lại sau.",
+          confirmText: "Đóng",
+        });
       }
-      setErrGeneral(msg);
-      setShowDialog(true);
     } finally {
       setLoading(false);
     }
   };
 
-  // Tuỳ backend: có bước verify riêng hay verify luôn trong reset.
   const handleReset = async () => {
-    // Khi reset, yêu cầu OTP + new password
     setErrOtp(null);
-    if (!otpSent) {
-      setErrGeneral("Em cần nhận OTP trước đã nha.");
-      setShowDialog(true);
-      return;
-    }
     if (!otp.trim()) {
       setErrOtp("Vui lòng nhập OTP.");
       return;
     }
+    if (!validateEmail()) return;
     if (!validatePasswords()) return;
 
     try {
       setLoading(true);
-      // Nhiều backend verify trong endpoint reset luôn, mình gửi cả email+otp+newPassword
       await api.post(endpoints.resetPassword, {
         email: email,
         code: otp,
         new_password: newPwd,
       });
 
-      setErrGeneral("Đổi mật khẩu thành công! Em đăng nhập lại nhé.");
-      setShowDialog(true);
-      setTimeout(() => {
-        setShowDialog(false);
-        navigation.goBack();
-      }, 1200);
+      dialogRef.current?.open({
+        title: "Thành công",
+        message: "Đổi mật khẩu thành công! Hãy đăng nhập lại nhé.",
+        confirmText: "OK",
+        onConfirm: () => navigation.goBack(),
+      });
     } catch (err: any) {
-      let msg = "Đổi mật khẩu thất bại. Thử lại sau nhé.";
-      if (axios.isAxiosError(err)) {
-        msg = err.response?.data?.message || msg;
-      } else {
-        console.error(err);
-      }
-      setErrGeneral(msg);
-      setShowDialog(true);
+      const msg =
+        axios.isAxiosError(err)
+          ? err.response?.data?.message || "Đổi mật khẩu thất bại. Thử lại sau nhé."
+          : "Đổi mật khẩu thất bại. Thử lại sau nhé.";
+      dialogRef.current?.open({
+        title: "Lỗi",
+        message: msg,
+        confirmText: "Đóng",
+      });
+      if (!axios.isAxiosError(err)) console.error(err);
     } finally {
       setLoading(false);
     }
@@ -201,40 +200,27 @@ const ForgotPassword: FC<Props> = ({ navigation }) => {
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.title}>Quên mật khẩu</Text>
-              <Text style={styles.subtitle}>Nhập email để nhận mã OTP, sau đó đặt mật khẩu mới nha 💪</Text>
             </View>
 
-            {/* Email */}
-            <TextInput
-              activeOutlineColor="#1c85fc"
-              mode="outlined"
-              label="Email"
-              value={email}
-              onChangeText={(t) => { setEmail(t); setErrEmail(null); }}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              style={styles.input}
-              error={!!errEmail}
-              left={<TextInput.Icon icon="email" />}
-            />
-            {!!errEmail && <HelperText type="error">{errEmail}</HelperText>}
+            {/* ====== KHỐI TRÊN: Email + OTP ====== */}
+            <View style={styles.sectionTop}>
+              {/* Email */}
+              <TextInput
+                activeOutlineColor="#1c85fc"
+                mode="outlined"
+                label="Email"
+                value={email}
+                onChangeText={(t) => { setEmail(t); setErrEmail(null); }}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                style={styles.input}
+                error={!!errEmail}
+                left={<TextInput.Icon icon="email" />}
+              />
+              {!!errEmail && <HelperText type="error">{errEmail}</HelperText>}
 
-            <Button
-              mode="contained"
-              buttonColor="#1c85fc"
-              textColor="white"
-              style={{ marginTop: 10, borderRadius: 12 }}
-              contentStyle={{ paddingVertical: 8 }}
-              onPress={handleSendOtp}
-              loading={loading}
-              disabled={loading}
-            >
-              {otpSent ? "Gửi lại OTP" : "Gửi OTP"}
-            </Button>
-
-            {/* OTP + Resend */}
-            {otpSent && (
-              <>
+              {/* OTP + nút Gửi OTP (ngang hàng, canh giữa) */}
+              <View style={styles.otpRow}>
                 <TextInput
                   activeOutlineColor="#1c85fc"
                   mode="outlined"
@@ -242,97 +228,86 @@ const ForgotPassword: FC<Props> = ({ navigation }) => {
                   value={otp}
                   onChangeText={(t) => { setOtp(t); setErrOtp(null); }}
                   autoCapitalize="none"
-                  style={styles.input}
+                  style={[styles.input, styles.inputFixed]}
                   error={!!errOtp}
                   left={<TextInput.Icon icon="shield-key" />}
                 />
-                {!!errOtp && <HelperText type="error">{errOtp}</HelperText>}
 
                 <Button
-                  mode="text"
-                  onPress={handleResendOtp}
-                  textColor="#1c85fc"
-                  disabled={remain > 0 || loading}
-                  style={{ alignSelf: "flex-start", marginTop: -6 }}
+                  mode="contained-tonal"
+                  style={styles.otpBtnRight}
+                  contentStyle={{ height: INPUT_HEIGHT, paddingHorizontal: 14 }}
+                  onPress={handleSendOtp}
+                  disabled={loading || remain > 0}
+                  loading={loading && remain === 0}
                 >
-                  {remain > 0 ? `Gửi lại OTP sau ${remain}s` : "Gửi lại OTP"}
+                  {remain > 0 ? `Gửi lại (${remain}s)` : "Gửi OTP"}
                 </Button>
-              </>
-            )}
+              </View>
+              {!!errOtp && <HelperText type="error" style={styles.helperBelowRow}>{errOtp}</HelperText>}
+            </View>
 
-            {/* New password */}
-            {otpSent && (
-              <>
-                <TextInput
-                  activeOutlineColor="#1c85fc"
-                  mode="outlined"
-                  label="Mật khẩu mới"
-                  value={newPwd}
-                  onChangeText={(t) => { setNewPwd(t); setErrNewPwd(null); }}
-                  secureTextEntry={!showPwd}
-                  autoCapitalize="none"
-                  style={styles.input}
-                  error={!!errNewPwd}
-                  left={<TextInput.Icon icon="lock" />}
-                  right={
-                    <TextInput.Icon
-                      icon={showPwd ? "eye-off" : "eye"}
-                      onPress={() => setShowPwd((p) => !p)}
-                    />
-                  }
-                />
-                {!!errNewPwd && <HelperText type="error">{errNewPwd}</HelperText>}
+            {/* ====== KHỐI DƯỚI: Mật khẩu mới ====== */}
+            <View style={styles.sectionBottom}>
+              <TextInput
+                activeOutlineColor="#1c85fc"
+                mode="outlined"
+                label="Mật khẩu mới"
+                value={newPwd}
+                onChangeText={(t) => { setNewPwd(t); setErrNewPwd(null); }}
+                secureTextEntry={!showPwd}
+                autoCapitalize="none"
+                style={styles.input}
+                error={!!errNewPwd}
+                left={<TextInput.Icon icon="lock" />}
+                right={
+                  <TextInput.Icon
+                    icon={showPwd ? "eye-off" : "eye"}
+                    onPress={() => setShowPwd((p) => !p)}
+                  />
+                }
+              />
+              {!!errNewPwd && <HelperText type="error">{errNewPwd}</HelperText>}
 
-                <TextInput
-                  activeOutlineColor="#1c85fc"
-                  mode="outlined"
-                  label="Xác nhận mật khẩu mới"
-                  value={confirmPwd}
-                  onChangeText={(t) => { setConfirmPwd(t); setErrConfirmPwd(null); }}
-                  secureTextEntry={!showPwd2}
-                  autoCapitalize="none"
-                  style={styles.input}
-                  error={!!errConfirmPwd}
-                  left={<TextInput.Icon icon="lock-check" />}
-                  right={
-                    <TextInput.Icon
-                      icon={showPwd2 ? "eye-off" : "eye"}
-                      onPress={() => setShowPwd2((p) => !p)}
-                    />
-                  }
-                />
-                {!!errConfirmPwd && <HelperText type="error">{errConfirmPwd}</HelperText>}
+              <TextInput
+                activeOutlineColor="#1c85fc"
+                mode="outlined"
+                label="Xác nhận mật khẩu mới"
+                value={confirmPwd}
+                onChangeText={(t) => { setConfirmPwd(t); setErrConfirmPwd(null); }}
+                secureTextEntry={!showPwd2}
+                autoCapitalize="none"
+                style={styles.input}
+                error={!!errConfirmPwd}
+                left={<TextInput.Icon icon="lock-check" />}
+                right={
+                  <TextInput.Icon
+                    icon={showPwd2 ? "eye-off" : "eye"}
+                    onPress={() => setShowPwd2((p) => !p)}
+                  />
+                }
+              />
+              {!!errConfirmPwd && <HelperText type="error">{errConfirmPwd}</HelperText>}
 
-                <Button
-                  mode="contained"
-                  buttonColor="#1c85fc"
-                  textColor="white"
-                  style={styles.button}
-                  contentStyle={{ paddingVertical: 8 }}
-                  labelStyle={{ fontSize: 16, fontWeight: "600" }}
-                  onPress={handleReset}
-                  loading={loading}
-                  disabled={loading}
-                >
-                  Đổi mật khẩu
-                </Button>
-              </>
-            )}
+              <Button
+                mode="contained"
+                buttonColor="#1c85fc"
+                textColor="white"
+                style={styles.button}
+                contentStyle={{ paddingVertical: 8 }}
+                labelStyle={{ fontSize: 16, fontWeight: "600" }}
+                onPress={handleReset}
+                loading={loading}
+                disabled={loading}
+              >
+                Đổi mật khẩu
+              </Button>
+            </View>
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAwareScrollView>
 
-      <Portal>
-        <Dialog visible={showDialog} onDismiss={() => setShowDialog(false)}>
-          <Dialog.Title>Thông báo</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium">{errGeneral}</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowDialog(false)}>OK</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+      <SharedDialog ref={dialogRef} />
     </SafeAreaView>
   );
 };
@@ -342,8 +317,28 @@ const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 16, paddingTop: 54 },
   header: { marginTop: 12, marginBottom: 24, alignItems: "center" },
   title: { fontSize: 24, fontWeight: "bold", color: "#1c85fc" },
-  subtitle: { marginTop: 6, fontSize: 14, color: "#666", textAlign: "center" },
-  input: { marginTop: 12, backgroundColor: "white" },
+
+  input: { flex: 1, marginTop: 12, backgroundColor: "white" },
+  inputFixed: { height: INPUT_HEIGHT },
+
+  sectionTop: {},
+  otpRow: {
+    flexDirection: "row",
+    alignItems: "center",   // canh giữa theo trục dọc
+    gap: 10,
+  },
+  otpBtnRight: {
+    marginTop: 12,          // khớp marginTop của input
+    borderRadius: 12,
+    justifyContent: "center",
+  },
+
+  helperBelowRow: {
+    marginTop: 4,           // helper của OTP nằm dưới hàng, không làm thay đổi chiều cao hàng
+  },
+
+  sectionBottom: { marginTop: 20 },
+
   button: { marginTop: 18, borderRadius: 12 },
 });
 
