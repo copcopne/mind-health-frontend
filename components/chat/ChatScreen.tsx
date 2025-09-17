@@ -193,22 +193,22 @@ const ChatScreen: FC = () => {
 
             // Đánh dấu tin nhắn tạm của user là "sent"
             markMsg(tempUserMsg.id, { status: "sent" as MsgStatus });
-
-            let botApiMsg = data as ApiMessage;
-
-            if (botApiMsg) {
-                const botChat = mapApiToChat(botApiMsg);
-                if (botChat.crisis === true) {
-                    warnRef?.current?.open();
-                }
-                setMessages(prev =>
-                    prev.some(m => m.id === botChat.id) ? prev : [botChat, ...prev]
-                );
-
+            
+            const botChat = mapApiToChat(data);
+            if (botChat.crisis === true) {
+                warnRef?.current?.open();
             }
+            setMessages(prev =>
+                prev.some(m => m.id === botChat.id) ? prev : [botChat, ...prev]
+            );
+
         } catch (e) {
             markMsg(tempUserMsg.id, { status: "failed" as MsgStatus });
             showSnackbar?.("Gửi tin nhắn thất bại. Thử lại nha!");
+            
+                console.error(e);
+                console.error(e.response?.status);
+                console.error(e.response?.data);
         }
     };
 

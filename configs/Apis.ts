@@ -112,7 +112,7 @@ export async function clearTokens() {
 /** ====== AXIOS INSTANCE ====== */
 export const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  timeout: 30000,
 });
 
 /** ====== SINGLE-FLIGHT REFRESH (chống race) ====== */
