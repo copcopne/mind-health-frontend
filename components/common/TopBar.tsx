@@ -1,5 +1,5 @@
-import React from "react";
-import { View, StyleSheet, Platform } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, StyleSheet, Platform, InteractionManager } from "react-native";
 import { IconButton, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
@@ -18,19 +18,37 @@ export const TopBar: React.FC<Props> = ({ onBack, title, rightText, paddingH = 2
   const insets = useSafeAreaInsets();
   const totalH = insets.top + HEADER_HEIGHT;
 
+  // Delay BlurView để tránh “tràn full-screen” ở frame đầu trên Android
+  const [showBlur, setShowBlur] = useState(Platform.OS !== "android" ? true : false);
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const task = InteractionManager.runAfterInteractions(() => setShowBlur(true));
+    return () => {
+      task?.cancel?.();
+    };
+  }, [totalH]);
+
   return (
     <View style={[styles.wrapper, { height: totalH }]}>
+      <View style={[styles.blurContainer, { height: totalH }]}>
+        {showBlur ? (
+          <BlurView
+            pointerEvents="none"
+            intensity={50}
+            tint="light"
+            style={{ width: "100%", height: "100%" }}
+            {...(Platform.OS === "android" ? { experimentalBlurMethod: "dimezisBlurView" } : {})}
+          />
+        ) : (
+          // Fallback: màu mờ nhẹ 1-2 frame đầu (Android)
+          <View
+            pointerEvents="none"
+            style={{ width: "100%", height: "100%", backgroundColor: "rgba(255,255,255,0.72)" }}
+          />
+        )}
+      </View>
 
-      {/* LAYER 1: Blur background */}
-      <BlurView
-        pointerEvents="none"
-        intensity={50}
-        tint="light"
-        experimentalBlurMethod="dimezisBlurView"
-        style={StyleSheet.absoluteFillObject}
-      />
-
-      {/* LAYER 2: Content on top of blur */}
+      {/* CONTENT */}
       <View
         style={[
           styles.contentRow,
@@ -59,12 +77,10 @@ export const TopBar: React.FC<Props> = ({ onBack, title, rightText, paddingH = 2
         </View>
 
         {/* RIGHT */}
-        <View style={styles.side}>
-          {!!rightText && <Text style={styles.rightText}>{rightText}</Text>}
-        </View>
+        <View style={styles.side}>{!!rightText && <Text style={styles.rightText}>{rightText}</Text>}</View>
       </View>
 
-      {/* Hairline tách riêng để không bị blur ảnh hưởng */}
+      {/* Hairline */}
       <View pointerEvents="none" style={styles.hairline} />
     </View>
   );
@@ -76,10 +92,16 @@ const styles = StyleSheet.create({
     left: 0, right: 0, top: 0,
     backgroundColor: "transparent",
     zIndex: 10,
+    elevation: 0,
+  },
+  blurContainer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: "hidden",
   },
   contentRow: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "transparent",
   },
   side: {
     width: SIDE,
@@ -91,7 +113,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     color: "#1c85fc",
-    // (tuỳ chọn) thêm shadow nhỏ để nổi trên nền mờ
     textShadowColor: "rgba(0,0,0,0.1)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1,
@@ -105,5 +126,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export const TOPBAR_TOTAL_HEIGHT = (insetsTop: number) => insetsTop + HEADER_HEIGHT;
 export default TopBar;

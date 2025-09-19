@@ -14,7 +14,7 @@ import { ProfileParamList } from "../../App";
 import { mapNoteDetail, NoteDetail } from "../../configs/Types";
 import { api, endpoints } from "../../configs/Apis";
 import MyLoadingIndicator from "../common/MyLoadingIndicator";
-import TopBar, { TOPBAR_TOTAL_HEIGHT } from "../common/TopBar";
+import TopBar from "../common/TopBar";
 import CreateNoteSheet, { CreateNoteSheetRef } from "./CreateNoteSheet";
 import { moodMetaByCode, normalizeMood } from "../../configs/Moods";
 import SharedDialog, { SharedDialogRef } from "../common/SharedDialog";
@@ -34,7 +34,7 @@ const NoteDetails: FC = () => {
   const navigation = useNavigation<any>();
 
   const insets = useSafeAreaInsets();
-  const headerH = TOPBAR_TOTAL_HEIGHT(insets.top);
+  const headerH = insets.top + 56;
 
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
