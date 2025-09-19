@@ -13,6 +13,7 @@ import CreateNoteSheet, { CreateNoteSheetRef } from "../note/CreateNoteSheet";
 
 // ===== SVG chart
 import Svg, { Defs, LinearGradient, Stop, Rect, Circle, G, Line, Path, Text as SvgText } from "react-native-svg";
+import { bus } from "../../utils/EventBus";
 
 type Props = NativeStackScreenProps<ProfileParamList, "profileStack">;
 
@@ -76,6 +77,14 @@ const Profile: FC<Props> = ({ navigation }) => {
   useEffect(() => {
     loadStats();
   }, [fromDate, today]);
+
+  useEffect(() => {
+    const sub = bus.addListener("note:changed", () => {
+      loadMoodEntries();
+      loadStats();
+    });
+    return () => sub.remove();
+  }, []);
 
   /** ===== Pull to refresh (notes + stats) ===== */
   const [refreshing, setRefreshing] = useState(false);

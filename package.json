@@ -21,6 +21,7 @@
     "expo-clipboard": "~7.1.5",
     "expo-secure-store": "~14.2.4",
     "expo-status-bar": "~2.2.3",
+    "fbemitter": "^3.0.0",
     "react": "19.0.0",
     "react-native": "0.79.6",
     "react-native-gesture-handler": "~2.24.0",

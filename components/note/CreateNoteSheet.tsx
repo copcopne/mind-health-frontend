@@ -23,6 +23,7 @@ import { api, endpoints } from "../../configs/Apis";
 import { useSnackbar } from "../../configs/Contexts";
 import { MOOD_OPTIONS } from "../../configs/Moods";
 import WarningDialog from "../common/WarningDialog";
+import { bus } from "../../utils/EventBus";
 
 type Mood = "VERY_BAD" | "BAD" | "NORMAL" | "GOOD" | "EXCELLENT";
 
@@ -132,10 +133,12 @@ const CreateNoteSheet = forwardRef<CreateNoteSheetRef, Props>(function CreateNot
         // CREATE
         res = await api.post(endpoints.moodEntries, payload);
         showSnackbar("Đã lưu nhật ký 🎉");
+        bus.emit("note:changed");
         onCreated?.();
       } else {
         res = await api.patch?.(endpoints.moodEntryDetail(editingId), payload);
         showSnackbar("Đã cập nhật nhật ký ✨");
+        bus.emit("note:changed");
         onUpdated?.();
       }
       sheetRef.current?.close();
