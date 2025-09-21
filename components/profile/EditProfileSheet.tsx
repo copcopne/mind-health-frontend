@@ -200,8 +200,8 @@ const EditProfileSheet = forwardRef<EditProfileSheetRef, Props>(function EditPro
             {/* Giới tính */}
             <Text style={styles.sectionLabel}>Giới tính</Text>
             <SegmentedButtons
-              value={gender ? "male" : "female"}
-              onValueChange={(v: any) => setGender(v === "male")}
+              value={gender === false ? "male" : "female"}
+              onValueChange={(v: any) => setGender(v !== "male")}
               buttons={[
                 { value: "male", label: "Nam" },
                 { value: "female", label: "Nữ" },

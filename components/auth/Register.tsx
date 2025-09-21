@@ -286,9 +286,9 @@ const Register: FC<Props> = ({ navigation }) => {
                                 <Text style={styles.bigLabel}>Giới tính</Text>
                                 <RadioButton.Group onValueChange={(v) => setGender(v === "true")} value={String(gender)}>
                                     <View style={styles.genderRow}>
-                                        <RadioButton value="true" />
-                                        <Text style={styles.genderText}>Nam</Text>
                                         <RadioButton value="false" />
+                                        <Text style={styles.genderText}>Nam</Text>
+                                        <RadioButton value="true" />
                                         <Text style={styles.genderText}>Nữ</Text>
                                     </View>
                                 </RadioButton.Group>
