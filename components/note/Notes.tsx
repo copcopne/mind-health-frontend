@@ -3,7 +3,7 @@ import { StyleSheet, View, RefreshControl, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ActivityIndicator, Text } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
-import TopBar, { TOPBAR_TOTAL_HEIGHT } from "../common/TopBar";
+import TopBar from "../common/TopBar";
 import { api, endpoints } from "../../configs/Apis";
 import { ApiPage, mapNote, Note } from "../../configs/Types";
 import NoteCard from "../note/NoteCard";
@@ -14,7 +14,7 @@ const PAGE_SIZE = 10;
 const Notes: FC = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const headerH = TOPBAR_TOTAL_HEIGHT(insets.top); // chiều cao TopBar (safe area + 56)
+  const headerH = insets.top + 56; // chiều cao TopBar (safe area + 56)
 
   const [notes, setNotes] = useState<Note[]>([]);
   const [page, setPage] = useState(0);
