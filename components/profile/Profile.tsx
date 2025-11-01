@@ -147,9 +147,9 @@ const Profile: FC<Props> = ({ navigation }) => {
               </View>
             ) : !stats || stats.length === 0 || stats.every(d => !d.mood_values?.length) ? (
               <View style={styles.chartPlaceholder}>
-                <Text style={styles.chartPlaceholderText}>Chưa có dữ liệu thống kê.</Text>
+                <Text style={styles.chartPlaceholderText}>Không có dữ liệu thống kê.</Text>
                 <Button mode="contained" style={{ marginTop: 10 }} onPress={loadStats}>
-                  Thử lại
+                  Tải lại
                 </Button>
               </View>
             ) : (
